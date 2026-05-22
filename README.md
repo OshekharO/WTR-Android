@@ -44,8 +44,10 @@ The app UI should not care whether the active source is novel, manga, or anime. 
 
 ```dart
 abstract class ContentSource {
+  String get id;
   String get name;
   String get type;
+  String get baseUrl;
 
   Future<List<ContentItem>> getHome();
   Future<List<ContentItem>> search(String query);
