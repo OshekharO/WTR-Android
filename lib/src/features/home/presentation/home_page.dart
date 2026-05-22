@@ -1,45 +1,61 @@
 import 'package:flutter/material.dart';
 
-import '../../detail/presentation/detail_page.dart';
+import '../../details/presentation/details_page.dart';
+import '../../search/presentation/search_page.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
-  static const _books = [
-    _Book('Future Daughters Show Up', 'Super dad system • Chapter 1 ready', 70381, 39133649),
-    _Book('Popular Translated Novel', 'Demo detail and similar section', 70381, 39133649),
-    _Book('Recently Updated', 'Continue reading from latest chapter', 70381, 39133649),
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  int _selectedIndex = 0;
+
+  final pages = const [
+    _HomeContent(),
+    SearchPage(),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('WTR Home')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Text('Featured', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 12),
-          for (final book in _books)
-            Card(
-              child: ListTile(
-                leading: const CircleAvatar(child: Icon(Icons.menu_book)),
-                title: Text(book.title),
-                subtitle: Text(book.subtitle),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => DetailPage(book: book))),
-              ),
-            ),
+      appBar: AppBar(title: const Text('WTR Android')),
+      body: pages[_selectedIndex],
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _selectedIndex,
+        onDestinationSelected: (index) => setState(() => _selectedIndex = index),
+        destinations: const [
+          NavigationDestination(icon: Icon(Icons.home_rounded), label: 'Home'),
+          NavigationDestination(icon: Icon(Icons.search_rounded), label: 'Search'),
         ],
       ),
     );
   }
 }
 
-class _Book {
-  const _Book(this.title, this.subtitle, this.rawId, this.chapterId);
-  final String title;
-  final String subtitle;
-  final int rawId;
-  final int chapterId;
+class _HomeContent extends StatelessWidget {
+  const _HomeContent();
+
+  @override
+  Widget build(BuildContext context) {
+    final books = ['Solo Leveling', 'Omniscient Reader', 'The Beginning After The End'];
+    return ListView.separated(
+      padding: const EdgeInsets.all(16),
+      itemCount: books.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      itemBuilder: (context, index) => Card(
+        child: ListTile(
+          leading: const CircleAvatar(child: Icon(Icons.menu_book_rounded)),
+          title: Text(books[index]),
+          subtitle: const Text('Tap to view details'),
+          trailing: const Icon(Icons.chevron_right_rounded),
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => DetailsPage(title: books[index])),
+          ),
+        ),
+      ),
+    );
+  }
 }
