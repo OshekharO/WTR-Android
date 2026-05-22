@@ -9,9 +9,13 @@ class ChapterListRepository {
   ChapterListRepository({DioClient? client}) : _client = client ?? DioClient();
   final DioClient _client;
 
-  Future<List<ChapterItem>> fetchChapters(int bookId) async {
+  Future<List<ChapterItem>> fetchChapters(int bookId, {int start = 1, int? end}) async {
     try {
-      final res = await _client.dio.get(ApiConstants.chapterList, queryParameters: {'id': bookId, 'raw_id': bookId});
+      final resolvedEnd = end ?? 61;
+      final res = await _client.dio.get(
+        '/api/chapters/$bookId',
+        queryParameters: {'start': start, 'end': resolvedEnd},
+      );
       final data = res.data;
       final list = data is List ? data : (data['data'] ?? data['chapters'] ?? []) as List;
       return list.map((e) => ChapterItem.fromJson(Map<String, dynamic>.from(e))).toList();

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_cors_image/flutter_cors_image.dart';
 
 import '../../books/data/models/book.dart';
 import '../../details/presentation/details_page.dart';
@@ -25,8 +26,49 @@ class _SearchPageState extends State<SearchPage> {
           builder: (context, snap) {
             if (snap.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
             final books = snap.data ?? [];
-            return Column(children: books.map((b) => Card(child: ListTile(leading: const Icon(Icons.menu_book), title: Text(b.title), subtitle: Text(b.author), onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => DetailsPage(book: b)))))).toList());
+            return Column(
+              children: books
+                  .map(
+                    (b) => Card(
+                      child: ListTile(
+                        leading: _CoverThumb(url: b.coverUrl),
+                        title: Text(b.title),
+                        subtitle: Text(b.author),
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => DetailsPage(book: b))),
+                      ),
+                    ),
+                  )
+                  .toList(),
+            );
           },
         )
       ]);
+}
+
+class _CoverThumb extends StatelessWidget {
+  const _CoverThumb({this.url});
+
+  final String? url;
+
+  @override
+  Widget build(BuildContext context) {
+    if (url == null || url!.trim().isEmpty) {
+      return const CircleAvatar(child: Icon(Icons.menu_book));
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: SizedBox(
+        width: 48,
+        height: 48,
+        child: CustomNetworkImage(
+          url: url!,
+          width: 48,
+          height: 48,
+          fit: BoxFit.cover,
+          errorWidget: const CircleAvatar(child: Icon(Icons.menu_book)),
+        ),
+      ),
+    );
+  }
 }

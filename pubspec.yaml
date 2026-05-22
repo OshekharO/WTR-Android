@@ -23,6 +23,7 @@ dependencies:
   cloudflare_bypass: ^0.0.1
   cloudflare_interceptor: ^0.0.3
   dart_web_scraper: ^0.1.0
+  flutter_cors_image: ^0.3.13
 
 dev_dependencies:
   flutter_test:

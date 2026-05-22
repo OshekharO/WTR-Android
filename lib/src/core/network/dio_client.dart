@@ -9,7 +9,7 @@ class DioClient {
         dio = dio ??
             Dio(
               BaseOptions(
-                baseUrl: ApiConstants.baseUrl,
+                baseUrl: ApiConstants.apiProxyBaseUrl,
                 connectTimeout: const Duration(seconds: 20),
                 receiveTimeout: const Duration(seconds: 30),
                 headers: const {
@@ -39,4 +39,24 @@ class DioClient {
 
   final Dio dio;
   final Logger logger;
+
+  Future<Response<dynamic>> postViaProxy({
+    required String targetUrl,
+    required Map<String, dynamic> body,
+    Map<String, dynamic>? headers,
+  }) {
+    return dio.post(
+      'https://cors-bypasser-pro.vercel.app/proxy',
+      data: <String, dynamic>{
+        'url': targetUrl,
+        'method': 'POST',
+        'headers': <String, dynamic>{
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          ...?headers,
+        },
+        'body': body,
+      },
+    );
+  }
 }

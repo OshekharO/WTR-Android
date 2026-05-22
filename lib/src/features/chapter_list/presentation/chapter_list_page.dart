@@ -15,7 +15,10 @@ class ChapterListPage extends StatefulWidget {
 
 class _ChapterListPageState extends State<ChapterListPage> {
   final _repo = ChapterListRepository();
-  late Future<List<ChapterItem>> _future = _repo.fetchChapters(widget.book.id);
+  late Future<List<ChapterItem>> _future = _repo.fetchChapters(
+    widget.book.rawId ?? widget.book.id,
+    end: widget.book.chapterCount,
+  );
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -31,7 +34,29 @@ class _ChapterListPageState extends State<ChapterListPage> {
               separatorBuilder: (_, __) => const SizedBox(height: 8),
               itemBuilder: (context, i) {
                 final c = chapters[i];
-                return Card(child: ListTile(leading: CircleAvatar(child: Text('${c.number}')), title: Text(c.title), subtitle: const Text('Tap to read'), onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ReaderPage(request: ChapterRequest(translate: 'ai', language: 'en', rawId: widget.book.id, chapterNo: c.number, retry: false, forceRetry: false, chapterId: c.id)))));
+                return Card(
+                  child: ListTile(
+                    leading: CircleAvatar(child: Text('${c.number}')),
+                    title: Text(c.title),
+                    subtitle: const Text('Tap to read'),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ReaderPage(
+                          request: ChapterRequest(
+                            translate: 'ai',
+                            language: 'en',
+                            rawId: widget.book.rawId ?? widget.book.id,
+                            chapterNo: c.number,
+                            retry: false,
+                            forceRetry: false,
+                            chapterId: c.id,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
               },
             );
           },

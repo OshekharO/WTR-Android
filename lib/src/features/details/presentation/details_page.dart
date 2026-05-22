@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_cors_image/flutter_cors_image.dart';
 
 import '../../books/data/models/book.dart';
 import '../../chapter_list/presentation/chapter_list_page.dart';
@@ -13,7 +14,7 @@ class DetailsPage extends StatefulWidget {
 
 class _DetailsPageState extends State<DetailsPage> {
   final _repo = DetailsRepository();
-  late Future<Book> _future = _repo.fetchDetails(widget.book.id, widget.book);
+  late Future<Book> _future = _repo.fetchDetails(widget.book);
 
   @override
   Widget build(BuildContext context) => FutureBuilder<Book>(
@@ -23,7 +24,23 @@ class _DetailsPageState extends State<DetailsPage> {
           return Scaffold(
             appBar: AppBar(title: Text(book.title)),
             body: ListView(padding: const EdgeInsets.all(16), children: [
-              Container(height: 180, decoration: BoxDecoration(color: Theme.of(context).colorScheme.primaryContainer, borderRadius: BorderRadius.circular(24)), child: const Icon(Icons.auto_stories, size: 72)),
+              Container(
+                height: 240,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: book.coverUrl == null
+                    ? const Center(child: Icon(Icons.auto_stories, size: 72))
+                    : CustomNetworkImage(
+                        url: book.coverUrl!,
+                        width: double.infinity,
+                        height: 240,
+                        fit: BoxFit.cover,
+                        errorWidget: const Center(child: Icon(Icons.auto_stories, size: 72)),
+                      ),
+              ),
               const SizedBox(height: 16),
               Text(book.title, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
               Text('by ${book.author}'),

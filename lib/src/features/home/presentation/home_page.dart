@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
+import 'package:flutter_cors_image/flutter_cors_image.dart';
 
 import '../../books/data/models/book.dart';
 import '../../details/presentation/details_page.dart';
@@ -70,11 +71,39 @@ class _BookCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Card(
         child: ListTile(
-          leading: const Icon(Icons.auto_stories),
+          leading: _CoverThumb(url: book.coverUrl),
           title: Text(book.title),
           subtitle: Text(book.author),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => DetailsPage(book: book))),
         ),
       );
+}
+
+class _CoverThumb extends StatelessWidget {
+  const _CoverThumb({this.url});
+
+  final String? url;
+
+  @override
+  Widget build(BuildContext context) {
+    if (url == null || url!.trim().isEmpty) {
+      return const CircleAvatar(child: Icon(Icons.auto_stories));
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: SizedBox(
+        width: 48,
+        height: 48,
+        child: CustomNetworkImage(
+          url: url!,
+          width: 48,
+          height: 48,
+          fit: BoxFit.cover,
+          errorWidget: const CircleAvatar(child: Icon(Icons.auto_stories)),
+        ),
+      ),
+    );
+  }
 }

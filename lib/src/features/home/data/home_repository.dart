@@ -9,9 +9,12 @@ class HomeRepository {
   HomeRepository({DioClient? client}) : _client = client ?? DioClient();
   final DioClient _client;
 
-  Future<List<Book>> fetchHomeBooks() async {
+  Future<List<Book>> fetchHomeBooks({String type = 'weekly', int limit = 5}) async {
     try {
-      final res = await _client.dio.get(ApiConstants.home);
+      final res = await _client.dio.get(
+        ApiConstants.serieRanking,
+        queryParameters: {'type': type, 'limit': limit},
+      );
       final data = res.data;
       final list = data is List ? data : (data['data'] ?? data['books'] ?? []) as List;
       return list.map((e) => Book.fromJson(Map<String, dynamic>.from(e))).toList();
