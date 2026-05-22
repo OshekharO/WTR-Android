@@ -5,7 +5,9 @@ import '../data/models/chapter_response.dart';
 import '../data/reader_repository.dart';
 
 class ReaderPage extends StatefulWidget {
-  const ReaderPage({super.key});
+  const ReaderPage({super.key, this.request});
+
+  final ChapterRequest? request;
 
   @override
   State<ReaderPage> createState() => _ReaderPageState();
@@ -25,14 +27,16 @@ class _ReaderPageState extends State<ReaderPage> {
     chapterId: 39133649,
   );
 
+  ChapterRequest get _request => widget.request ?? _demoRequest;
+
   @override
   void initState() {
     super.initState();
-    _future = _repository.fetchChapter(_demoRequest);
+    _future = _repository.fetchChapter(_request);
   }
 
   Future<void> _refresh() async {
-    setState(() => _future = _repository.fetchChapter(_demoRequest));
+    setState(() => _future = _repository.fetchChapter(_request));
     await _future;
   }
 
