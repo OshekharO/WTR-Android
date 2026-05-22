@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'features/reader/presentation/reader_page.dart';
+import 'features/shell/presentation/main_shell.dart';
 
 class WtrApp extends StatelessWidget {
   const WtrApp({super.key});
@@ -20,7 +20,7 @@ class WtrApp extends StatelessWidget {
         colorSchemeSeed: Colors.deepPurple,
         brightness: Brightness.dark,
       ),
-      home: const ReaderPage(),
+      home: const MainShell(),
     );
   }
 }
