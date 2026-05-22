@@ -96,12 +96,15 @@ class _CoverThumb extends StatelessWidget {
       child: SizedBox(
         width: 48,
         height: 48,
-        child: CustomNetworkImage(
-          url: url!,
-          width: 48,
-          height: 48,
-          fit: BoxFit.cover,
-          errorWidget: const CircleAvatar(child: Icon(Icons.auto_stories)),
+        child: ColoredBox(
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          child: CustomNetworkImage(
+            url: url!,
+            width: 48,
+            height: 48,
+            fit: BoxFit.cover,
+            errorWidget: const CircleAvatar(child: Icon(Icons.auto_stories)),
+          ),
         ),
       ),
     );

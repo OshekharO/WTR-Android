@@ -1,15 +1,15 @@
 import 'package:dio/dio.dart';
 import 'dart:convert';
 
-import '../../../core/constants/api_constants.dart';
 import '../../../core/network/dio_client.dart';
 import '../../books/data/models/book.dart';
+import 'models/novel_details.dart';
 
 class DetailsRepository {
   DetailsRepository({DioClient? client}) : _client = client ?? DioClient();
   final DioClient _client;
 
-  Future<Book> fetchDetails(Book fallback) async {
+  Future<NovelDetails> fetchDetails(Book fallback) async {
     try {
       final rawId = fallback.rawId ?? fallback.id;
       final slug = fallback.slug ?? _slugify(fallback.title);
@@ -18,11 +18,11 @@ class DetailsRepository {
         options: Options(responseType: ResponseType.plain),
       );
       final html = res.data is String ? res.data as String : '${res.data}';
-      return _parsePageBook(html, fallback);
+      return _parsePageDetails(html, fallback);
     } on DioException {
-      return fallback;
+      return NovelDetails.fromBook(fallback);
     } catch (_) {
-      return fallback;
+      return NovelDetails.fromBook(fallback);
     }
   }
 
@@ -58,9 +58,9 @@ class DetailsRepository {
     return items.whereType<Map<String, dynamic>>().map(Book.fromJson).toList(growable: false);
   }
 
-  Book _parsePageBook(String html, Book fallback) {
+  NovelDetails _parsePageDetails(String html, Book fallback) {
     final match = RegExp(r'<script id="__NEXT_DATA__" type="application/json">(.*?)</script>', dotAll: true).firstMatch(html);
-    if (match == null) return fallback;
+    if (match == null) return NovelDetails.fromBook(fallback);
 
     try {
       final payload = jsonDecode(match.group(1)!) as Map<String, dynamic>;
@@ -73,13 +73,13 @@ class DetailsRepository {
           : null;
 
       if (serieData is Map<String, dynamic>) {
-        return Book.fromJson(serieData);
+        return NovelDetails.fromSerieData(serieData);
       }
     } catch (_) {
-      return fallback;
+      return NovelDetails.fromBook(fallback);
     }
 
-    return fallback;
+    return NovelDetails.fromBook(fallback);
   }
 
   String _slugify(String value) => value
