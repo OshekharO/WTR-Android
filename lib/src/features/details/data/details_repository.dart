@@ -26,6 +26,38 @@ class DetailsRepository {
     }
   }
 
+  Future<List<Book>> fetchSimilarNovels(Book source) async {
+    try {
+      final res = await _client.dio.get(
+        '/api/v2/novel/similar/${source.id}',
+        options: Options(responseType: ResponseType.json),
+      );
+      return _parseSimilarBooks(res.data);
+    } on DioException {
+      return const [];
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  List<Book> _parseSimilarBooks(dynamic data) {
+    final items = <dynamic>[];
+
+    if (data is List) {
+      items.addAll(data);
+    } else if (data is Map<String, dynamic>) {
+      final payload = data['data'];
+      if (payload is List) {
+        items.addAll(payload);
+      } else if (payload is Map<String, dynamic>) {
+        final nested = payload['data'];
+        if (nested is List) items.addAll(nested);
+      }
+    }
+
+    return items.whereType<Map<String, dynamic>>().map(Book.fromJson).toList(growable: false);
+  }
+
   Book _parsePageBook(String html, Book fallback) {
     final match = RegExp(r'<script id="__NEXT_DATA__" type="application/json">(.*?)</script>', dotAll: true).firstMatch(html);
     if (match == null) return fallback;
