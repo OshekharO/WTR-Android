@@ -1,0 +1,298 @@
+# WTR Android - LLM Codebase Guide
+
+This file explains the WTR Android codebase for AI coding assistants and future maintainers.
+
+## Project summary
+
+WTR Android is a Flutter app for reading and discovering content from WTR and future extension-based sources. The long-term goal is to support multiple content types through one common source interface:
+
+- Novels
+- Manga
+- Anime
+- Future custom extensions
+
+The app should remain source-agnostic. UI screens should call a shared source interface instead of directly depending on one API.
+
+## Tech stack
+
+- Flutter
+- Dart
+- Dio
+- HTTP
+- SharedPreferences
+- AdaptiveTheme
+- Responsive Framework
+- Google Nav Bar
+- Logger
+- DNS Client
+- Cloudflare bypass/interceptor packages
+- Dart web scraper
+
+## Current entry points
+
+- `lib/main.dart`
+  - Initializes Flutter bindings.
+  - Runs `WtrApp`.
+
+- `lib/src/app.dart`
+  - Defines `WtrApp`.
+  - Configures `AdaptiveTheme`.
+  - Configures responsive breakpoints.
+  - Shows splash screen before loading Home.
+
+## Current important files
+
+- `lib/src/core/constants/api_constants.dart`
+  - Contains current WTR API base URLs and paths.
+
+- `lib/src/core/network/dio_client.dart`
+  - Central Dio client.
+  - Adds logging interceptors.
+  - Contains proxy POST helper.
+
+- `lib/src/features/home/presentation/home_page.dart`
+  - Current main screen.
+  - Uses Google Nav Bar.
+  - Currently has Home and Search tabs.
+
+- `lib/src/features/home/data/home_repository.dart`
+  - Fetches current WTR home/ranking data.
+  - Falls back to demo data on errors.
+
+## Desired architecture
+
+The project should move toward this structure:
+
+```txt
+lib/src/
+├── core/
+│   ├── constants/
+│   ├── network/
+│   ├── storage/
+│   └── utils/
+├── extensions/
+│   ├── models/
+│   │   ├── content_item.dart
+│   │   ├── content_details.dart
+│   │   ├── chapter_item.dart
+│   │   └── content_source.dart
+│   ├── registry/
+│   │   └── source_registry.dart
+│   ├── novel/
+│   │   └── wtr_novel_source.dart
+│   ├── manga/
+│   │   └── manga_source.dart
+│   └── anime/
+│       └── anime_source.dart
+├── features/
+│   ├── home/
+│   ├── search/
+│   ├── details/
+│   ├── chapter_list/
+│   ├── reader/
+│   ├── extensions/
+│   └── settings/
+└── app.dart
+```
+
+## Core design rule
+
+Do not put source-specific API logic directly inside UI screens.
+
+Bad:
+
+```dart
+HomePage -> directly calls WTR endpoint
+```
+
+Good:
+
+```dart
+HomePage -> activeSource.getHome()
+```
+
+## Planned common interface
+
+```dart
+abstract class ContentSource {
+  String get id;
+  String get name;
+  String get type;
+  String get baseUrl;
+
+  Future<List<ContentItem>> getHome();
+  Future<List<ContentItem>> search(String query);
+  Future<ContentDetails> getDetails(String id);
+  Future<List<ChapterItem>> getChapters(String id);
+}
+```
+
+## Planned common models
+
+### ContentItem
+
+Represents a generic item shown in Home/Search.
+
+Suggested fields:
+
+- `id`
+- `title`
+- `imageUrl`
+- `subtitle`
+- `type`
+- `sourceId`
+- `extra`
+
+### ContentDetails
+
+Represents details page data.
+
+Suggested fields:
+
+- `id`
+- `title`
+- `imageUrl`
+- `description`
+- `author`
+- `status`
+- `genres`
+- `type`
+- `sourceId`
+- `extra`
+
+### ChapterItem
+
+Represents novel chapters, manga chapters, or anime episodes.
+
+Suggested fields:
+
+- `id`
+- `title`
+- `number`
+- `url`
+- `type`
+- `sourceId`
+- `extra`
+
+## Source registry
+
+Create a registry that stores all available sources.
+
+Expected behavior:
+
+- Return all sources.
+- Return source by ID.
+- Return default source.
+- Load selected source ID from preferences.
+- Save selected source ID to preferences.
+
+## Settings feature
+
+Settings should eventually include:
+
+- Theme mode: light/dark/system
+- DNS resolver selection/test
+- GitHub link
+- Issue report link
+- Contact link
+- About app
+- App version/developer info
+
+## DNS resolver feature
+
+DNS resolver logic should live in:
+
+```txt
+lib/src/core/network/dns_resolver_service.dart
+```
+
+It should not be mixed with UI code.
+
+Settings UI should only call service methods.
+
+## Networking rules
+
+- Use `DioClient` for API requests.
+- Add source-specific headers inside source classes or source config.
+- Log requests and parser errors using `Logger`.
+- Keep Cloudflare-specific logic isolated.
+- Keep scraping logic isolated inside extension/source classes.
+
+## UI rules
+
+- Home should display `ContentItem` objects.
+- Search should display `ContentItem` objects.
+- Details should display `ContentDetails`.
+- ChapterList should display `ChapterItem` objects.
+- Reader/Player should branch by content type only at the final rendering layer.
+
+## Navigation plan
+
+Main bottom tabs:
+
+```txt
+Home
+Search
+Extensions
+Settings
+```
+
+Details and Reader/Player should be pushed screens, not bottom tabs.
+
+## Extension behavior
+
+When user selects an extension:
+
+1. Save selected source ID in SharedPreferences.
+2. Update active source in app state.
+3. Home refreshes using selected source.
+4. Search uses selected source.
+5. Details and ChapterList use selected source.
+
+## Current API notes
+
+Current WTR API paths:
+
+```dart
+webBaseUrl = 'https://wtr-lab.com'
+apiProxyBaseUrl = 'https://cors-bypasser-pro.vercel.app/proxy?url=https://wtr-lab.com'
+serieRanking = '/api/serie/ranking'
+search = '/api/search'
+novelDetails = '/api/novel/details'
+chapterList = '/api/novel/chapters'
+readerGet = '/api/reader/get'
+```
+
+## Development order recommendation
+
+1. Add common models.
+2. Add `ContentSource` interface.
+3. Convert current WTR novel API into `WtrNovelSource`.
+4. Add `SourceRegistry`.
+5. Add `PrefsService`.
+6. Update Home to use active source.
+7. Update Search to use active source.
+8. Update Details and ChapterList to use active source.
+9. Add Extensions tab.
+10. Add Settings tab.
+11. Add DNS resolver service.
+12. Add manga source.
+13. Add anime source.
+14. Add reader/player type-specific rendering.
+
+## Important constraints for AI assistants
+
+- Do not rewrite the whole app unless explicitly asked.
+- Provide complete file contents when modifying code.
+- Always mention the exact file path.
+- Keep code Flutter/Dart compatible with SDK `>=3.4.0 <4.0.0`.
+- Keep imports clean and relative to the current project style.
+- Prefer simple working code over over-engineered architecture.
+- Preserve existing working UI while migrating gradually.
+- Do not remove demo fallback behavior unless asked.
+- Do not hardcode new APIs into UI screens.
+- Do not expose secrets, tokens, private keys, or hidden credentials.
+
+## Maintainer
+
+Saksham Shekher / OshekharO
