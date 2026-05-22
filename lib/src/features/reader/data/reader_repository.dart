@@ -24,12 +24,22 @@ class ReaderRepository {
 
   String _extractChapterText(dynamic data) {
     if (data is String) return data;
+    if (data is List) {
+      final lines = data
+          .map(_extractChapterText)
+          .map((line) => line.trim())
+          .where((line) => line.isNotEmpty)
+          .toList();
+      if (lines.isNotEmpty) return lines.join('\n\n');
+    }
     if (data is Map<String, dynamic>) {
-      final content = data['data'] ?? data['content'] ?? data['text'] ?? data['chapter'] ?? data['body'];
-      if (content is String) return content;
-      if (content is Map<String, dynamic>) {
-        final nested = content['content'] ?? content['text'] ?? content['body'];
-        if (nested is String) return nested;
+      final preferredKeys = <String>['body', 'content', 'text', 'chapter', 'data', 'result', 'payload', 'response'];
+      for (final key in preferredKeys) {
+        if (!data.containsKey(key)) continue;
+        final extracted = _extractChapterText(data[key]);
+        if (extracted.trim().isNotEmpty && extracted != 'No chapter text available.') {
+          return extracted;
+        }
       }
     }
     return 'No chapter text available.';
