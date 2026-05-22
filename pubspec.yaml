@@ -20,10 +20,8 @@ dependencies:
   nb_utils: ^7.1.4
   icons_launcher: ^3.0.0
   mix: ^1.5.2
-  leak_tracker: ^10.0.8
-  dns_client: ^0.2.1
-  cloudflare_bypass: ^1.0.3
-  cloudflare_interceptor: ^1.0.1
+  cloudflare_bypass: ^0.0.1
+  cloudflare_interceptor: ^0.0.3
   dart_web_scraper: ^0.1.0
 
 dev_dependencies:
