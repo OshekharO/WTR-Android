@@ -1,10 +1,10 @@
-# WTR Android - LLM Codebase Guide
+# OtakuStream - LLM Codebase Guide
 
-This file explains the WTR Android codebase for AI coding assistants and future maintainers.
+This file explains the OtakuStream codebase for AI coding assistants and future maintainers.
 
 ## Project summary
 
-WTR Android is a Flutter app for reading and discovering content from WTR and future extension-based sources. The long-term goal is to support multiple content types through one common source interface:
+OtakuStream is a Flutter app for reading and discovering content from WTR and future extension-based sources. The long-term goal is to support multiple content types through one common source interface:
 
 - Novels
 - Manga
@@ -32,10 +32,10 @@ The app should remain source-agnostic. UI screens should call a shared source in
 
 - `lib/main.dart`
   - Initializes Flutter bindings.
-  - Runs `WtrApp`.
+  - Runs `OtakuStreamApp`.
 
 - `lib/src/app.dart`
-  - Defines `WtrApp`.
+  - Defines `OtakuStreamApp`.
   - Configures `AdaptiveTheme`.
   - Configures responsive breakpoints.
   - Shows splash screen before loading Home.
