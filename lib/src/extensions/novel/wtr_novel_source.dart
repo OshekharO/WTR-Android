@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
+
 import 'package:dio/dio.dart';
 import 'package:logger/logger.dart';
 
@@ -44,17 +46,48 @@ class WtrNovelSource implements ContentSource {
   @override
   Future<List<ContentItem>> getHome() async {
     try {
-      final res = await _client.get(
-        '/api/serie/ranking',
-        queryParameters: {'type': 'weekly', 'limit': 20},
-      );
-      return _parseItemList(res.data);
+      return getRanking(type: 'weekly', limit: 20);
     } on DioException catch (e) {
       _log.w('WtrNovelSource.getHome failed', error: e);
       return _demoItems;
     } catch (e) {
       _log.e('WtrNovelSource.getHome unexpected error', error: e);
       return _demoItems;
+    }
+  }
+
+  Future<List<ContentItem>> getLatest({int page = 1, int limit = 10}) async {
+    try {
+      final res = await _client.get(
+        '/_next/data/4VGoIyKJTGgGftVZVdBYc/en/novel-list.json',
+        queryParameters: {'page': page, 'locale': 'en'},
+      );
+      return _parseLatestItemList(res.data, limit: limit);
+    } on DioException catch (e) {
+      _log.w('WtrNovelSource.getLatest failed', error: e);
+      return _demoItems.take(limit).toList(growable: false);
+    } catch (e) {
+      _log.e('WtrNovelSource.getLatest unexpected error', error: e);
+      return _demoItems.take(limit).toList(growable: false);
+    }
+  }
+
+  Future<List<ContentItem>> getRanking({
+    required String type,
+    int limit = 10,
+  }) async {
+    try {
+      final res = await _client.get(
+        '/api/serie/ranking',
+        queryParameters: {'type': type, 'limit': limit},
+      );
+      return _parseItemList(res.data).take(limit).toList(growable: false);
+    } on DioException catch (e) {
+      _log.w('WtrNovelSource.getRanking($type) failed', error: e);
+      return _demoItems.take(limit).toList(growable: false);
+    } catch (e) {
+      _log.e('WtrNovelSource.getRanking($type) unexpected error', error: e);
+      return _demoItems.take(limit).toList(growable: false);
     }
   }
 
@@ -195,6 +228,44 @@ class WtrNovelSource implements ContentSource {
         .toList(growable: false);
   }
 
+  List<ContentItem> _parseLatestItemList(dynamic data, {int limit = 10}) {
+    dynamic resolved = data;
+    if (resolved is String) {
+      try {
+        resolved = jsonDecode(resolved);
+      } catch (_) {
+        return const [];
+      }
+    }
+
+    final series = _dig(resolved, ['pageProps', 'series']);
+    final items = series is List
+      ? series
+      : series is Map<String, dynamic>
+        ? (series['data'] ?? series['items'] ?? series['series'])
+        : null;
+
+    if (items is! List) return const [];
+
+    return items
+      .whereType<Map<String, dynamic>>()
+      .map(_itemFromJson)
+      .take(limit)
+      .toList(growable: false);
+  }
+
+  dynamic _dig(dynamic value, List<String> keys) {
+    dynamic current = value;
+    for (final key in keys) {
+      if (current is Map<String, dynamic>) {
+        current = current[key];
+      } else {
+        return null;
+      }
+    }
+    return current;
+  }
+
   List<dynamic> _extractList(dynamic value) {
     if (value is List) return value;
     if (value is Map<String, dynamic>) {
@@ -230,15 +301,27 @@ class WtrNovelSource implements ContentSource {
       author: '${payload['author'] ?? json['author'] ?? 'Unknown'}',
       description:
           '${payload['description'] ?? json['description'] ?? json['desc'] ?? 'No description available.'}',
-      coverUrl: json['image']?.toString() ??
+        coverUrl: _maybeProxyUrl(json['image']?.toString() ??
           payload['image']?.toString() ??
           json['cover']?.toString() ??
-          json['cover_url']?.toString(),
+          json['cover_url']?.toString()),
       chapterCount: int.tryParse(
               '${json['chapter_count'] ?? json['raw_chapter_count'] ?? payload['chapter_count'] ?? payload['raw_chapter_count'] ?? 0}') ??
           0,
       sourceId: id,
     );
+  }
+
+  /// If running on web, rewrite `url` to route through the CORS proxy so
+  /// browser image requests aren't blocked by remote CDN CORS policies.
+  /// On native platforms the original URL is returned unchanged.
+  String? _maybeProxyUrl(String? url) {
+    if (url == null || url.trim().isEmpty) return null;
+    if (!kIsWeb) return url;
+    // Use the same proxy host as the API client. The proxy expects a `url`
+    // query parameter for GET passthrough (works with the deployed proxy).
+    final proxied = 'https://cors-bypasser-pro.vercel.app/proxy?url=${Uri.encodeComponent(url)}';
+    return proxied;
   }
 
   ContentDetails _parseHtmlDetails(String html, ContentItem fallback) {
@@ -399,20 +482,6 @@ class WtrNovelSource implements ContentSource {
         return terms[index] ?? match.group(0)!;
       },
     );
-  }
-
-  // ── Helpers ───────────────────────────────────────────────────────────────
-
-  dynamic _dig(dynamic value, List<String> keys) {
-    dynamic current = value;
-    for (final key in keys) {
-      if (current is Map<String, dynamic>) {
-        current = current[key];
-      } else {
-        return null;
-      }
-    }
-    return current;
   }
 
   Map<String, dynamic> _asMap(dynamic value) =>

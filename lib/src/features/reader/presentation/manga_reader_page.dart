@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:photo_view/photo_view.dart';
-import 'package:photo_view/photo_view_gallery.dart';
 
 import '../../../extensions/models/content_item.dart';
 import '../../../extensions/registry/source_registry.dart';
 
 /// Full-screen manga chapter viewer built on [PhotoViewGallery].
-/// Supports pinch-to-zoom, swipe between pages, and a page indicator.
+/// Supports vertical webtoon-style scrolling through chapter images.
 class MangaReaderPage extends StatefulWidget {
   const MangaReaderPage({
     super.key,
@@ -28,8 +26,6 @@ class MangaReaderPage extends StatefulWidget {
 
 class _MangaReaderPageState extends State<MangaReaderPage> {
   late final Future<List<String>> _future;
-  final PageController _pageController = PageController();
-  int _currentPage = 0;
   bool _showUi = true;
 
   @override
@@ -46,7 +42,6 @@ class _MangaReaderPageState extends State<MangaReaderPage> {
 
   @override
   void dispose() {
-    _pageController.dispose();
     // Restore system UI when leaving the reader.
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
@@ -79,36 +74,49 @@ class _MangaReaderPageState extends State<MangaReaderPage> {
           backgroundColor: Colors.black,
           body: Stack(
             children: [
-              // ── Gallery ────────────────────────────────────────────────────
+              // ── Webtoon scroll ───────────────────────────────────────────
               GestureDetector(
                 onTap: _toggleUi,
-                child: PhotoViewGallery.builder(
-                  pageController: _pageController,
-                  itemCount: pages.length,
-                  onPageChanged: (index) =>
-                      setState(() => _currentPage = index),
-                  scrollPhysics: const BouncingScrollPhysics(),
-                  builder: (context, index) => PhotoViewGalleryPageOptions(
-                    imageProvider: NetworkImage(pages[index]),
-                    minScale: PhotoViewComputedScale.contained,
-                    maxScale: PhotoViewComputedScale.covered * 3,
-                    heroAttributes: PhotoViewHeroAttributes(
-                      tag: 'manga_page_${widget.chapterId}_$index',
+                child: CustomScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  slivers: [
+                    SliverPadding(
+                      padding: EdgeInsets.zero,
+                      sliver: SliverList(
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) => Image.network(
+                            pages[index],
+                            width: double.infinity,
+                            fit: BoxFit.fitWidth,
+                            alignment: Alignment.topCenter,
+                            gaplessPlayback: true,
+                            loadingBuilder: (context, child, event) {
+                              if (event == null) return child;
+                              return const SizedBox(
+                                height: 320,
+                                child: Center(
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              );
+                            },
+                            errorBuilder: (_, __, ___) => const SizedBox(
+                              height: 320,
+                              child: Center(
+                                child: Icon(
+                                  Icons.broken_image_rounded,
+                                  color: Colors.white54,
+                                  size: 64,
+                                ),
+                              ),
+                            ),
+                          ),
+                          childCount: pages.length,
+                        ),
+                      ),
                     ),
-                    errorBuilder: (_, __, ___) => const Center(
-                      child: Icon(Icons.broken_image_rounded,
-                          color: Colors.white54, size: 64),
-                    ),
-                  ),
-                  loadingBuilder: (_, event) => Center(
-                    child: CircularProgressIndicator(
-                      value: event == null
-                          ? null
-                          : event.cumulativeBytesLoaded /
-                              (event.expectedTotalBytes ?? 1),
-                      color: Colors.white,
-                    ),
-                  ),
+                  ],
                 ),
               ),
 
@@ -166,7 +174,7 @@ class _MangaReaderPageState extends State<MangaReaderPage> {
                 ),
               ),
 
-              // ── Bottom bar — page indicator + navigation ───────────────────
+              // ── Bottom bar ────────────────────────────────────────────────
               AnimatedPositioned(
                 duration: const Duration(milliseconds: 220),
                 curve: Curves.easeOut,
@@ -184,74 +192,26 @@ class _MangaReaderPageState extends State<MangaReaderPage> {
                   child: SafeArea(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
+                        horizontal: 16,
+                        vertical: 10,
+                      ),
                       child: Row(
                         children: [
-                          // Prev page
-                          IconButton(
-                            icon: const Icon(Icons.chevron_left_rounded,
-                                color: Colors.white, size: 32),
-                            onPressed: _currentPage > 0
-                                ? () => _pageController.previousPage(
-                                      duration:
-                                          const Duration(milliseconds: 250),
-                                      curve: Curves.easeOut,
-                                    )
-                                : null,
+                          const Icon(
+                            Icons.swipe_vertical_rounded,
+                            color: Colors.white,
+                            size: 20,
                           ),
-
-                          // Slider
+                          const SizedBox(width: 10),
                           Expanded(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  'Page ${_currentPage + 1} / ${pages.length}',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                SliderTheme(
-                                  data: SliderTheme.of(context).copyWith(
-                                    activeTrackColor: Colors.white,
-                                    inactiveTrackColor: Colors.white30,
-                                    thumbColor: Colors.white,
-                                    overlayColor: Colors.white24,
-                                    trackHeight: 3,
-                                    thumbShape: const RoundSliderThumbShape(
-                                        enabledThumbRadius: 7),
-                                  ),
-                                  child: Slider(
-                                    value: _currentPage.toDouble(),
-                                    min: 0,
-                                    max: (pages.length - 1).toDouble(),
-                                    divisions:
-                                        pages.length > 1 ? pages.length - 1 : 1,
-                                    onChanged: (v) {
-                                      final page = v.round();
-                                      _pageController.jumpToPage(page);
-                                      setState(() => _currentPage = page);
-                                    },
-                                  ),
-                                ),
-                              ],
+                            child: Text(
+                              'Webtoon scroll • ${pages.length} pages',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
-                          ),
-
-                          // Next page
-                          IconButton(
-                            icon: const Icon(Icons.chevron_right_rounded,
-                                color: Colors.white, size: 32),
-                            onPressed: _currentPage < pages.length - 1
-                                ? () => _pageController.nextPage(
-                                      duration:
-                                          const Duration(milliseconds: 250),
-                                      curve: Curves.easeOut,
-                                    )
-                                : null,
                           ),
                         ],
                       ),
