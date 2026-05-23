@@ -443,12 +443,12 @@ class _HeroCover extends StatelessWidget {
         clipBehavior: Clip.antiAlias,
         child: item.coverUrl == null
             ? const Center(child: Icon(Icons.auto_stories, size: 72))
-            : Image.network(
-                item.coverUrl!,
+            : ProxiedImage(
+                url: item.coverUrl!,
                 width: double.infinity,
                 height: double.infinity,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) =>
+                errorWidget:
                     const Center(child: Icon(Icons.auto_stories, size: 72)),
               ),
       );
