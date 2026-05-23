@@ -1,6 +1,6 @@
-# WTR Android
+# OtakuStream
 
-WTR Android is a Flutter-based reader app for discovering and reading web novel content from the WTR API. The project is being structured into a scalable multi-source content app that can support novels, manga, anime, and future extension-based sources without rewriting the core UI.
+OtakuStream is a Flutter-based reader app for discovering and reading web novel content from the WTR API. The project is being structured into a scalable multi-source content app that can support novels, manga, anime, and future extension-based sources without rewriting the core UI.
 
 ## Current status
 
