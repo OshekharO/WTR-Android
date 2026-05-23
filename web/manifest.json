@@ -1,6 +1,6 @@
 {
-    "name": "wtr_android",
-    "short_name": "wtr_android",
+    "name": "OtakuStream",
+    "short_name": "OtakuStream",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

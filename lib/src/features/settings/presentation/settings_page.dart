@@ -194,7 +194,7 @@ class _SettingsPageState extends State<SettingsPage> {
             const ListTile(
               leading: Icon(Icons.code_rounded),
               title: Text('Source'),
-              subtitle: Text('github.com/OshekharO/WTR-Android'),
+              subtitle: Text('github.com/OshekharO/OtakuStream'),
             ),
           ],
         ),

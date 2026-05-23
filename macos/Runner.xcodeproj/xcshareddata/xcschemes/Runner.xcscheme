@@ -15,7 +15,7 @@
                   <BuildableReference
                      BuildableIdentifier = "primary"
                      BlueprintIdentifier = "33CC10EC2044A3C60003C045"
-                     BuildableName = "wtr_android.app"
+                     BuildableName = "OtakuStream.app"
                      BlueprintName = "Runner"
                      ReferencedContainer = "container:Runner.xcodeproj">
                   </BuildableReference>
@@ -33,7 +33,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "33CC10EC2044A3C60003C045"
-               BuildableName = "wtr_android.app"
+               BuildableName = "OtakuStream.app"
                BlueprintName = "Runner"
                ReferencedContainer = "container:Runner.xcodeproj">
             </BuildableReference>
@@ -49,7 +49,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "33CC10EC2044A3C60003C045"
-            BuildableName = "wtr_android.app"
+            BuildableName = "OtakuStream.app"
             BlueprintName = "Runner"
             ReferencedContainer = "container:Runner.xcodeproj">
          </BuildableReference>
@@ -84,7 +84,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "33CC10EC2044A3C60003C045"
-            BuildableName = "wtr_android.app"
+            BuildableName = "OtakuStream.app"
             BlueprintName = "Runner"
             ReferencedContainer = "container:Runner.xcodeproj">
          </BuildableReference>
@@ -98,12 +98,12 @@
       debugDocumentVersioning = "YES">
       <BuildableProductRunnable
          runnableDebuggingMode = "0">
-         <BuildableReference
-            BuildableIdentifier = "primary"
-            BlueprintIdentifier = "33CC10EC2044A3C60003C045"
-            BuildableName = "wtr_android.app"
-            BlueprintName = "Runner"
-            ReferencedContainer = "container:Runner.xcodeproj">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "33CC10EC2044A3C60003C045"
+               BuildableName = "OtakuStream.app"
+               BlueprintName = "Runner"
+               ReferencedContainer = "container:Runner.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>
