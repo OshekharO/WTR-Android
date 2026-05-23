@@ -1,5 +1,5 @@
-name: wtr_android
-description: Flutter reader app for WTR API.
+name: otaku_stream
+description: OtakuStream — multi-source novel, manga and anime reader.
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -24,6 +24,10 @@ dependencies:
   cloudflare_interceptor: ^0.0.3
   dart_web_scraper: ^0.1.0
   flutter_cors_image: ^0.3.13
+  photo_view: ^0.15.0
+  chewie: ^1.14.1
+  video_player: ^2.11.1
+  dns_client: ^1.3.1
 
 dev_dependencies:
   flutter_test:

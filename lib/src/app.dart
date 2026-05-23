@@ -2,16 +2,20 @@ import 'package:adaptive_theme/adaptive_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:responsive_framework/responsive_framework.dart';
 
+import 'extensions/registry/source_registry.dart';
+import 'features/extensions/presentation/extensions_page.dart';
 import 'features/home/presentation/home_page.dart';
+import 'features/search/presentation/search_page.dart';
+import 'features/settings/presentation/settings_page.dart';
 
-class WtrApp extends StatefulWidget {
-  const WtrApp({super.key});
+class OtakuStreamApp extends StatefulWidget {
+  const OtakuStreamApp({super.key});
 
   @override
-  State<WtrApp> createState() => _WtrAppState();
+  State<OtakuStreamApp> createState() => _OtakuStreamAppState();
 }
 
-class _WtrAppState extends State<WtrApp> {
+class _OtakuStreamAppState extends State<OtakuStreamApp> {
   bool _showSplash = true;
 
   @override
@@ -39,7 +43,7 @@ class _WtrAppState extends State<WtrApp> {
       initial: AdaptiveThemeMode.system,
       builder: (theme, darkTheme) => MaterialApp(
         debugShowCheckedModeBanner: false,
-        title: 'WTR Android',
+        title: 'OtakuStream',
         theme: theme,
         darkTheme: darkTheme,
         builder: (context, child) => ResponsiveBreakpoints.builder(
@@ -52,20 +56,115 @@ class _WtrAppState extends State<WtrApp> {
         ),
         home: AnimatedSwitcher(
           duration: const Duration(milliseconds: 350),
-          child: _showSplash ? const SplashScreen() : const HomePage(),
+          child: _showSplash ? const _SplashScreen() : const _Shell(),
         ),
       ),
     );
   }
 }
 
-class SplashScreen extends StatelessWidget {
-  const SplashScreen({super.key});
+// ── Main shell with bottom nav ─────────────────────────────────────────────────
+
+class _Shell extends StatefulWidget {
+  const _Shell();
+
+  @override
+  State<_Shell> createState() => _ShellState();
+}
+
+class _ShellState extends State<_Shell> {
+  int _index = 0;
+  final _registry = SourceRegistry.instance;
+
+  static const _tabs = [
+    _TabItem(icon: Icons.home_rounded, label: 'Home'),
+    _TabItem(icon: Icons.search_rounded, label: 'Search'),
+    _TabItem(icon: Icons.extension_rounded, label: 'Sources'),
+    _TabItem(icon: Icons.settings_rounded, label: 'Settings'),
+  ];
+
+  static const _pages = [
+    HomePage(),
+    SearchPage(),
+    ExtensionsPage(),
+    SettingsPage(),
+  ];
+
+  static const _titles = ['Home', 'Search', 'Sources', 'Settings'];
+
+  @override
+  void initState() {
+    super.initState();
+    _registry.addListener(_onSourceChanged);
+  }
+
+  @override
+  void dispose() {
+    _registry.removeListener(_onSourceChanged);
+    super.dispose();
+  }
+
+  void _onSourceChanged() => setState(() {});
+
+  @override
+  Widget build(BuildContext context) {
+    final source = _registry.active;
+    return Scaffold(
+      appBar: AppBar(
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              _titles[_index],
+              style: Theme.of(context).textTheme.titleLarge,
+              overflow: TextOverflow.ellipsis,
+            ),
+            if (_index < 2)
+              Text(
+                source.name,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                overflow: TextOverflow.ellipsis,
+              ),
+          ],
+        ),
+      ),
+      body: IndexedStack(
+        index: _index,
+        children: _pages,
+      ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _index,
+        onDestinationSelected: (i) => setState(() => _index = i),
+        destinations: _tabs
+            .map((t) => NavigationDestination(
+                  icon: Icon(t.icon),
+                  label: t.label,
+                ))
+            .toList(growable: false),
+      ),
+    );
+  }
+}
+
+class _TabItem {
+  const _TabItem({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+}
+
+// ── Splash screen ──────────────────────────────────────────────────────────────
+
+class _SplashScreen extends StatelessWidget {
+  const _SplashScreen();
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -73,9 +172,9 @@ class SplashScreen extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              colorScheme.primary.withOpacity(0.95),
-              colorScheme.tertiary.withOpacity(0.92),
-              colorScheme.secondary.withOpacity(0.95),
+              colorScheme.primary.withValues(alpha: 0.95),
+              colorScheme.tertiary.withValues(alpha: 0.92),
+              colorScheme.secondary.withValues(alpha: 0.95),
             ],
           ),
         ),
@@ -87,15 +186,17 @@ class SplashScreen extends StatelessWidget {
                 width: 96,
                 height: 96,
                 decoration: BoxDecoration(
-                  color: colorScheme.surface.withOpacity(0.18),
+                  color: colorScheme.surface.withValues(alpha: 0.18),
                   borderRadius: BorderRadius.circular(28),
-                  border: Border.all(color: colorScheme.surface.withOpacity(0.25)),
+                  border: Border.all(
+                      color: colorScheme.surface.withValues(alpha: 0.25)),
                 ),
-                child: Icon(Icons.auto_stories, size: 48, color: colorScheme.onPrimary),
+                child: Icon(Icons.auto_stories,
+                    size: 48, color: colorScheme.onPrimary),
               ),
               const SizedBox(height: 20),
               Text(
-                'WTR Android',
+                'OtakuStream',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                       color: colorScheme.onPrimary,
                       fontWeight: FontWeight.w800,
@@ -103,9 +204,9 @@ class SplashScreen extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                'Read. Discover. Continue.',
+                'Novels. Manga. Anime.',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: colorScheme.onPrimary.withOpacity(0.85),
+                      color: colorScheme.onPrimary.withValues(alpha: 0.85),
                     ),
               ),
               const SizedBox(height: 28),
@@ -114,8 +215,10 @@ class SplashScreen extends StatelessWidget {
                 child: LinearProgressIndicator(
                   minHeight: 6,
                   borderRadius: BorderRadius.circular(999),
-                  backgroundColor: colorScheme.onPrimary.withOpacity(0.14),
-                  valueColor: AlwaysStoppedAnimation<Color>(colorScheme.onPrimary),
+                  backgroundColor:
+                      colorScheme.onPrimary.withValues(alpha: 0.14),
+                  valueColor:
+                      AlwaysStoppedAnimation<Color>(colorScheme.onPrimary),
                 ),
               ),
             ],

@@ -1,62 +1,143 @@
 import 'package:flutter/material.dart';
 
-import '../data/models/chapter_request.dart';
-import '../data/models/reader_chapter_content.dart';
-import '../data/reader_repository.dart';
+import '../../../extensions/models/content_item.dart';
+import '../../../extensions/models/content_source.dart';
+import '../../../extensions/registry/source_registry.dart';
+import 'anime_player_page.dart';
+import 'manga_reader_page.dart';
 
-class ReaderPage extends StatefulWidget {
-  const ReaderPage({super.key, required this.request});
+/// Entry point for all content viewing.
+/// Routes to the correct viewer based on the active source type:
+///   - [SourceType.novel]  → scrollable text reader
+///   - [SourceType.manga]  → [MangaReaderPage] (photo_view gallery)
+///   - [SourceType.anime]  → [AnimePlayerPage] (chewie video player)
+class ReaderPage extends StatelessWidget {
+  const ReaderPage({
+    super.key,
+    required this.item,
+    required this.chapterId,
+    required this.chapterNo,
+    required this.chapterTitle,
+  });
 
-  final ChapterRequest request;
+  final ContentItem item;
+  final int chapterId;
+  final int chapterNo;
+  final String chapterTitle;
 
   @override
-  State<ReaderPage> createState() => _ReaderPageState();
+  Widget build(BuildContext context) {
+    final sourceType = SourceRegistry.instance.active.type;
+
+    return switch (sourceType) {
+      SourceType.manga => MangaReaderPage(
+          item: item,
+          chapterId: chapterId,
+          chapterNo: chapterNo,
+          chapterTitle: chapterTitle,
+        ),
+      SourceType.anime => AnimePlayerPage(
+          item: item,
+          episodeId: chapterId,
+          episodeNo: chapterNo,
+          episodeTitle: chapterTitle,
+        ),
+      _ => _NovelReaderPage(
+          item: item,
+          chapterId: chapterId,
+          chapterNo: chapterNo,
+          chapterTitle: chapterTitle,
+        ),
+    };
+  }
 }
 
-class _ReaderPageState extends State<ReaderPage> {
-  final _repo = ReaderRepository();
-  late Future<ReaderChapterContent> _future = _repo.fetchChapterContent(widget.request);
-  bool _showRaw = false;
+// ── Novel text reader ──────────────────────────────────────────────────────────
+
+class _NovelReaderPage extends StatefulWidget {
+  const _NovelReaderPage({
+    required this.item,
+    required this.chapterId,
+    required this.chapterNo,
+    required this.chapterTitle,
+  });
+
+  final ContentItem item;
+  final int chapterId;
+  final int chapterNo;
+  final String chapterTitle;
+
+  @override
+  State<_NovelReaderPage> createState() => _NovelReaderPageState();
+}
+
+class _NovelReaderPageState extends State<_NovelReaderPage> {
+  late final Future<String> _future =
+      SourceRegistry.instance.active.getChapterContent(
+    item: widget.item,
+    chapterId: widget.chapterId,
+    chapterNo: widget.chapterNo,
+  );
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: Text('Chapter ${widget.request.chapterNo}')),
-        body: FutureBuilder<ReaderChapterContent>(
+        appBar: AppBar(
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Chapter ${widget.chapterNo}',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              if (widget.chapterTitle.isNotEmpty)
+                Text(
+                  widget.chapterTitle,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+            ],
+          ),
+        ),
+        body: FutureBuilder<String>(
           future: _future,
           builder: (context, snap) {
             if (snap.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             }
+            final content = snap.data?.trim().isNotEmpty == true
+                ? snap.data!.trim()
+                : 'No chapter text available.';
 
-            final contentData = snap.data;
-            final hasRaw = contentData?.hasRaw == true;
-            final content = _showRaw && hasRaw
-                ? contentData!.raw!.trim()
-                : contentData?.translated.trim().isNotEmpty == true
-                    ? contentData!.translated.trim()
-                    : 'No chapter text available.';
             return ListView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
               children: [
-                if (hasRaw) ...[
-                  SegmentedButton<bool>(
-                    segments: const [
-                      ButtonSegment<bool>(value: false, label: Text('Translated'), icon: Icon(Icons.translate)),
-                      ButtonSegment<bool>(value: true, label: Text('Raw'), icon: Icon(Icons.code)),
-                    ],
-                    selected: <bool>{_showRaw},
-                    onSelectionChanged: (selection) {
-                      setState(() => _showRaw = selection.first);
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                ],
                 Text(
-                  'Chapter ${widget.request.chapterNo}',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                  'Chapter ${widget.chapterNo}',
+                  style: Theme.of(context)
+                      .textTheme
+                      .headlineSmall
+                      ?.copyWith(fontWeight: FontWeight.bold),
                 ),
-                const SizedBox(height: 12),
-                Text(content, style: Theme.of(context).textTheme.bodyLarge?.copyWith(height: 1.6)),
+                if (widget.chapterTitle.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    widget.chapterTitle,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                  ),
+                ],
+                const SizedBox(height: 20),
+                SelectableText(
+                  content,
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodyLarge
+                      ?.copyWith(height: 1.7),
+                ),
               ],
             );
           },

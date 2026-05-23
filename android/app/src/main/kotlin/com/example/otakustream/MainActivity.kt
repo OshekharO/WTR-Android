@@ -1,4 +1,4 @@
-package com.example.wtr_android
+package com.example.otakustream
 
 import io.flutter.embedding.android.FlutterActivity
 

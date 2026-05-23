@@ -1,81 +1,117 @@
 import 'package:flutter/material.dart';
-import 'package:google_nav_bar/google_nav_bar.dart';
-import 'package:flutter_cors_image/flutter_cors_image.dart';
 
-import '../../books/data/models/book.dart';
+import '../../../core/widgets/proxied_image.dart';
+import '../../../extensions/models/content_item.dart';
+import '../../../extensions/models/content_source.dart';
+import '../../../extensions/registry/source_registry.dart';
 import '../../details/presentation/details_page.dart';
-import '../../search/presentation/search_page.dart';
-import '../data/home_repository.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
+
   @override
   State<HomePage> createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
-  int _index = 0;
+  final _registry = SourceRegistry.instance;
+  late ContentSource _source;
+  late Future<List<ContentItem>> _future;
 
   @override
-  Widget build(BuildContext context) {
-    final pages = [const _HomeTab(), const SearchPage()];
-    return Scaffold(
-      appBar: AppBar(title: const Text('WTR Android')),
-      body: pages[_index],
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.all(12),
-        child: GNav(
-          gap: 8,
-          selectedIndex: _index,
-          onTabChange: (i) => setState(() => _index = i),
-          tabs: const [GButton(icon: Icons.home, text: 'Home'), GButton(icon: Icons.search, text: 'Search')],
-        ),
-      ),
-    );
+  void initState() {
+    super.initState();
+    _source = _registry.active;
+    _future = _source.getHome();
+    _registry.addListener(_onSourceChanged);
   }
-}
-
-class _HomeTab extends StatefulWidget {
-  const _HomeTab();
-  @override
-  State<_HomeTab> createState() => _HomeTabState();
-}
-
-class _HomeTabState extends State<_HomeTab> {
-  final _repo = HomeRepository();
-  late Future<List<Book>> _future = _repo.fetchHomeBooks();
-
-  Future<void> _refresh() async => setState(() => _future = _repo.fetchHomeBooks());
 
   @override
-  Widget build(BuildContext context) => FutureBuilder<List<Book>>(
+  void dispose() {
+    _registry.removeListener(_onSourceChanged);
+    super.dispose();
+  }
+
+  void _onSourceChanged() {
+    final newSource = _registry.active;
+    if (newSource.id == _source.id) return;
+    setState(() {
+      _source = newSource;
+      _future = _source.getHome();
+    });
+  }
+
+  Future<void> _refresh() => setState(() {
+        _future = _source.getHome();
+      }) as Future<void>;
+
+  @override
+  Widget build(BuildContext context) => FutureBuilder<List<ContentItem>>(
         future: _future,
         builder: (context, snap) {
-          if (snap.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
-          final books = snap.data ?? [];
+          if (snap.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          final items = snap.data ?? const [];
           return RefreshIndicator(
-            onRefresh: () async => _refresh(),
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: books.length,
-              itemBuilder: (_, i) => _BookCard(book: books[i]),
-            ),
+            onRefresh: _refresh,
+            child: items.isEmpty
+                ? _EmptyState(sourceName: _source.name)
+                : ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: items.length,
+                    itemBuilder: (_, i) => _ContentCard(item: items[i]),
+                  ),
           );
         },
       );
 }
 
-class _BookCard extends StatelessWidget {
-  const _BookCard({required this.book});
-  final Book book;
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({required this.sourceName});
+
+  final String sourceName;
+
+  @override
+  Widget build(BuildContext context) => Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.inbox_rounded,
+                size: 56, color: Theme.of(context).colorScheme.outlineVariant),
+            const SizedBox(height: 12),
+            Text(
+              'No content from $sourceName',
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Pull down to refresh',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+            ),
+          ],
+        ),
+      );
+}
+
+class _ContentCard extends StatelessWidget {
+  const _ContentCard({required this.item});
+
+  final ContentItem item;
+
   @override
   Widget build(BuildContext context) => Card(
         child: ListTile(
-          leading: _CoverThumb(url: book.coverUrl),
-          title: Text(book.title),
-          subtitle: Text(book.author),
+          leading: _CoverThumb(url: item.coverUrl),
+          title: Text(item.title),
+          subtitle: Text(item.author),
           trailing: const Icon(Icons.chevron_right),
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => DetailsPage(book: book))),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => DetailsPage(item: item)),
+          ),
         ),
       );
 }
@@ -90,7 +126,6 @@ class _CoverThumb extends StatelessWidget {
     if (url == null || url!.trim().isEmpty) {
       return const CircleAvatar(child: Icon(Icons.auto_stories));
     }
-
     return ClipRRect(
       borderRadius: BorderRadius.circular(8),
       child: SizedBox(
@@ -98,7 +133,7 @@ class _CoverThumb extends StatelessWidget {
         height: 48,
         child: ColoredBox(
           color: Theme.of(context).colorScheme.surfaceContainerHighest,
-          child: CustomNetworkImage(
+          child: ProxiedImage(
             url: url!,
             width: 48,
             height: 48,
