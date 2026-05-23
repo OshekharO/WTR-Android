@@ -1,46 +1,92 @@
 # OtakuStream
 
-OtakuStream is a Flutter-based reader app for discovering and reading web novel content from the WTR API. The project is being structured into a scalable multi-source content app that can support novels, manga, anime, and future extension-based sources without rewriting the core UI.
+OtakuStream is a Flutter/Dart multi-source reader app for discovering and reading novels, manga, and anime-style content. The current implementation focuses on WTR API-powered novel reading while the codebase is being shaped into a source/extension-driven architecture.
 
-## Current status
+## Features
 
-The app currently includes:
-
-- Splash screen
-- Home screen
-- Search screen
+- Splash screen and responsive app shell
+- Home feed using WTR ranking data
+- Search flow
 - Details screen
-- Chapter list flow
-- Reader flow foundation
-- Dio-based API client
-- Logger-based request debugging
+- Chapter list screen
+- Novel reader foundation
+- Manga reader page foundation
+- Anime/video player page foundation
+- Extensions screen foundation
+- Settings screen foundation
+- Dio-based networking with logging
+- Demo fallback data when API calls fail
 - Adaptive light/dark/system theme support
 - Responsive layout setup
-- Demo fallback data when API calls fail
 
-## Future direction
+## Tech stack
 
-The planned architecture is based on a common extension/source system.
+- Flutter SDK `>=3.4.0 <4.0.0`
+- Dart
+- Dio and HTTP for networking
+- SharedPreferences for local preferences
+- Logger for debugging
+- AdaptiveTheme for theme switching
+- Responsive Framework for layouts
+- Google Nav Bar for bottom navigation
+- DNS Client for resolver support
+- Cloudflare bypass/interceptor packages for protected sources
+- Dart Web Scraper for future scraping-based sources
+- Cached Network Image, Photo View, Chewie, and Video Player for media rendering
 
-Supported source types planned:
+## Project structure
 
-- Novel API
-- Manga API
-- Anime API
-- Future custom sources/extensions
+```txt
+lib/
+└── src/
+    ├── app.dart
+    ├── core/
+    │   ├── constants/
+    │   └── network/
+    └── features/
+        ├── books/
+        ├── chapter_list/
+        ├── details/
+        ├── extensions/
+        ├── home/
+        ├── reader/
+        ├── search/
+        └── settings/
+```
 
-Each source will define its own:
+## Current API configuration
 
-- API base URL
-- Home feed logic
-- Search logic
-- Details parser
-- Chapter/episode list logic
-- Content fetch logic
+WTR API constants are defined in:
 
-The app UI should not care whether the active source is novel, manga, or anime. It should only call a common interface.
+```txt
+lib/src/core/constants/api_constants.dart
+```
 
-## Planned common source interface
+Current paths:
+
+```dart
+webBaseUrl = 'https://wtr-lab.com'
+apiProxyBaseUrl = 'https://cors-bypasser-pro.vercel.app/proxy?url=https://wtr-lab.com'
+serieRanking = '/api/serie/ranking'
+search = '/api/search'
+novelDetails = '/api/novel/details'
+chapterList = '/api/novel/chapters'
+readerGet = '/api/reader/get'
+```
+
+## Planned architecture
+
+The long-term goal is to keep UI screens source-agnostic. Home, Search, Details, Chapter List, Reader, Manga Reader, and Anime Player should consume common models and source interfaces instead of directly depending on one provider.
+
+Planned source types:
+
+- Novel API sources
+- Manga API sources
+- Anime/video sources
+- Scraping-based sources
+- Future custom extensions
+
+Planned common interface:
 
 ```dart
 abstract class ContentSource {
@@ -56,107 +102,32 @@ abstract class ContentSource {
 }
 ```
 
-Example source classes:
-
-```dart
-class NovelSource implements ContentSource {}
-class MangaSource implements ContentSource {}
-class AnimeSource implements ContentSource {}
-```
-
-## Planned project structure
-
-```txt
-lib/
-└── src/
-    ├── core/
-    │   ├── network/
-    │   │   ├── api_client.dart
-    │   │   ├── dio_client.dart
-    │   │   └── dns_resolver_service.dart
-    │   ├── storage/
-    │   │   └── prefs_service.dart
-    │   └── constants/
-    │       └── app_constants.dart
-    │
-    ├── extensions/
-    │   ├── models/
-    │   │   ├── content_item.dart
-    │   │   ├── content_details.dart
-    │   │   ├── chapter_item.dart
-    │   │   └── content_source.dart
-    │   ├── registry/
-    │   │   └── source_registry.dart
-    │   ├── novel/
-    │   │   └── wtr_novel_source.dart
-    │   ├── manga/
-    │   │   └── manga_source.dart
-    │   └── anime/
-    │       └── anime_source.dart
-    │
-    ├── features/
-    │   ├── home/
-    │   ├── search/
-    │   ├── details/
-    │   ├── chapter_list/
-    │   ├── reader/
-    │   ├── extensions/
-    │   └── settings/
-    │
-    └── app.dart
-```
-
 ## Main app flow
 
 ```txt
 User opens app
 ↓
-App loads selected extension from SharedPreferences
+App loads theme and app shell
 ↓
-Home uses active extension API
+Home fetches WTR ranking data
 ↓
-User can switch extension from Extensions tab
+User searches or opens a title
 ↓
-Search, Details, ChapterList and Reader use selected extension
+Details loads metadata
 ↓
-Settings handles theme, links, DNS, about and debug options
+Chapter list loads chapters
+↓
+Reader displays chapter content
 ```
 
-## Package usage
-
-| Package | Usage |
-|---|---|
-| `dio` / `http` | API requests |
-| `shared_preferences` | Save selected extension, theme and DNS settings |
-| `dns_client` | Custom DNS resolver support |
-| `cloudflare_bypass` / `cloudflare_interceptor` | Protected source handling |
-| `dart_web_scraper` | Scraping sources without public APIs |
-| `google_nav_bar` | Bottom navigation |
-| `adaptive_theme` | Light/dark/system theme |
-| `responsive_framework` | Responsive layout |
-| `logger` | Debug logging |
-| `leak_tracker` | Memory/debug tracking |
-| `icons_launcher` | App icon setup |
-| `mix`, `nb_utils` | UI utilities |
-
-## API paths
-
-Current WTR API constants are defined in:
+Future extension flow:
 
 ```txt
-lib/src/core/constants/api_constants.dart
-```
-
-Current paths include:
-
-```dart
-webBaseUrl = 'https://wtr-lab.com'
-apiProxyBaseUrl = 'https://cors-bypasser-pro.vercel.app/proxy?url=https://wtr-lab.com'
-serieRanking = '/api/serie/ranking'
-search = '/api/search'
-novelDetails = '/api/novel/details'
-chapterList = '/api/novel/chapters'
-readerGet = '/api/reader/get'
+User selects source from Extensions
+↓
+Selected source ID is saved locally
+↓
+Home/Search/Details/Reader use the active source
 ```
 
 ## Run locally
@@ -174,13 +145,28 @@ flutter build apk --release
 
 ## Development notes
 
-- Keep API and scraping logic inside source/extension classes.
-- Keep UI screens generic and source-agnostic.
-- Use `Logger` for network and parser debugging.
-- Use `SharedPreferences` only through a service wrapper.
-- Avoid hardcoding source-specific logic inside Home, Search, Details, or Reader screens.
-- Add new content providers by implementing `ContentSource` and registering it in the source registry.
+- Keep API and scraping logic out of UI screens.
+- Put provider-specific logic inside repositories or future source/extension classes.
+- Use `DioClient` for API calls.
+- Use `Logger` for request, parser, and fallback debugging.
+- Keep demo fallback behavior unless intentionally replacing it.
+- Keep code compatible with Flutter SDK `>=3.4.0 <4.0.0`.
+- Add new providers by implementing a source class and registering it in the future source registry.
+- Keep Cloudflare, DNS, and scraping logic isolated from presentation widgets.
 
-## Developer
+## Roadmap
+
+- Add common source models: `ContentItem`, `ContentDetails`, and `ChapterItem`
+- Add `ContentSource` interface
+- Convert current WTR logic into `WtrNovelSource`
+- Add `SourceRegistry`
+- Add preferences service for selected source and settings
+- Wire Home/Search/Details/Chapter List to active source
+- Expand Extensions tab
+- Improve Settings tab with DNS, theme, GitHub, issue, and about options
+- Add manga and anime source implementations
+- Add reader/player rendering based on content type
+
+## Maintainer
 
 Created and maintained by Saksham Shekher / OshekharO.
