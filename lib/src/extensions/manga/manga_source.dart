@@ -47,7 +47,6 @@ class MangaSource implements ContentSource {
   }
 
   static const _baseUrl = 'https://api.asurascans.com';
-  static const _siteBaseUrl = 'https://asurascans.com';
 
   final Dio _dio;
   final Logger _log;
@@ -300,22 +299,6 @@ class MangaSource implements ContentSource {
     return 'https://wsrv.nl/?url=${Uri.encodeComponent(url)}';
   }
 
-  Future<String?> _resolvePublicRoute(ContentItem item) async {
-    final cached = _publicRouteFor(item);
-    if (cached != null) return cached;
-
-    try {
-      final slug = item.slug ?? _slugify(item.title);
-      final res = await _dio.get('/api/series/$slug');
-      final payload = _decode(res.data);
-      final series = _asMap(payload['series']);
-      _cacheRoute(series);
-      return _publicRouteFor(item);
-    } catch (_) {
-      return null;
-    }
-  }
-
   String? _publicRouteFor(ContentItem item) {
     return _publicRouteById[item.id] ??
         (item.slug == null ? null : _publicRouteBySlug[item.slug!]);
@@ -335,13 +318,6 @@ class MangaSource implements ContentSource {
     if (slug.isNotEmpty && route.isNotEmpty) {
       _publicRouteBySlug[slug] = route;
     }
-  }
-
-  List<String> _extractImageUrls(String html) {
-    final urls = RegExp(
-      r'https://cdn\.asurascans\.com/asura-images/chapters/[^"\s)]+',
-    ).allMatches(html).map((match) => match.group(0)!).toList(growable: false);
-    return urls.toSet().toList(growable: false);
   }
 
   dynamic _decode(dynamic data) {

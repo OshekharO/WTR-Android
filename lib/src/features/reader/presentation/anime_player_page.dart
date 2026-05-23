@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 
+import '../../../extensions/models/chapter_item.dart';
 import '../../../extensions/models/content_item.dart';
 import '../../../extensions/registry/source_registry.dart';
 
@@ -14,12 +15,20 @@ class AnimePlayerPage extends StatefulWidget {
     required this.episodeId,
     required this.episodeNo,
     required this.episodeTitle,
+    required this.previousChapter,
+    required this.nextChapter,
+    required this.onPrevious,
+    required this.onNext,
   });
 
   final ContentItem item;
   final int episodeId;
   final int episodeNo;
   final String episodeTitle;
+  final ChapterItem? previousChapter;
+  final ChapterItem? nextChapter;
+  final VoidCallback? onPrevious;
+  final VoidCallback? onNext;
 
   @override
   State<AnimePlayerPage> createState() => _AnimePlayerPageState();
@@ -112,6 +121,22 @@ class _AnimePlayerPageState extends State<AnimePlayerPage> {
       appBar: AppBar(
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            tooltip: widget.previousChapter == null
+                ? 'No previous episode'
+                : 'Previous episode',
+            onPressed: widget.onPrevious,
+            icon: const Icon(Icons.skip_previous_rounded),
+          ),
+          IconButton(
+            tooltip: widget.nextChapter == null
+                ? 'No next episode'
+                : 'Next episode',
+            onPressed: widget.onNext,
+            icon: const Icon(Icons.skip_next_rounded),
+          ),
+        ],
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

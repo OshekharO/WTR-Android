@@ -1,8 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../extensions/models/chapter_item.dart';
 import '../../../extensions/models/content_item.dart';
 import '../../../extensions/registry/source_registry.dart';
+
+enum _MangaFitMode { width, contain, cover, none }
+
+extension on _MangaFitMode {
+  String get label => switch (this) {
+        _MangaFitMode.width => 'Fit width',
+        _MangaFitMode.contain => 'Contain',
+        _MangaFitMode.cover => 'Cover',
+        _MangaFitMode.none => 'Original',
+      };
+
+  BoxFit get fit => switch (this) {
+        _MangaFitMode.width => BoxFit.fitWidth,
+        _MangaFitMode.contain => BoxFit.contain,
+        _MangaFitMode.cover => BoxFit.cover,
+        _MangaFitMode.none => BoxFit.none,
+      };
+}
 
 /// Full-screen manga chapter viewer built on [PhotoViewGallery].
 /// Supports vertical webtoon-style scrolling through chapter images.
@@ -13,12 +32,20 @@ class MangaReaderPage extends StatefulWidget {
     required this.chapterId,
     required this.chapterNo,
     required this.chapterTitle,
+    required this.previousChapter,
+    required this.nextChapter,
+    required this.onPrevious,
+    required this.onNext,
   });
 
   final ContentItem item;
   final int chapterId;
   final int chapterNo;
   final String chapterTitle;
+  final ChapterItem? previousChapter;
+  final ChapterItem? nextChapter;
+  final VoidCallback? onPrevious;
+  final VoidCallback? onNext;
 
   @override
   State<MangaReaderPage> createState() => _MangaReaderPageState();
@@ -27,6 +54,12 @@ class MangaReaderPage extends StatefulWidget {
 class _MangaReaderPageState extends State<MangaReaderPage> {
   late final Future<List<String>> _future;
   bool _showUi = true;
+  _MangaFitMode _fitMode = _MangaFitMode.width;
+  double _zoom = 1.0;
+
+  static const _minZoom = 0.75;
+  static const _maxZoom = 2.5;
+  static const _zoomStep = 0.15;
 
   @override
   void initState() {
@@ -48,6 +81,25 @@ class _MangaReaderPageState extends State<MangaReaderPage> {
   }
 
   void _toggleUi() => setState(() => _showUi = !_showUi);
+
+  void _zoomIn() {
+    setState(() {
+      _zoom = (_zoom + _zoomStep).clamp(_minZoom, _maxZoom);
+    });
+  }
+
+  void _zoomOut() {
+    setState(() {
+      _zoom = (_zoom - _zoomStep).clamp(_minZoom, _maxZoom);
+    });
+  }
+
+  void _resetView() {
+    setState(() {
+      _zoom = 1.0;
+      _fitMode = _MangaFitMode.width;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -84,33 +136,41 @@ class _MangaReaderPageState extends State<MangaReaderPage> {
                       padding: EdgeInsets.zero,
                       sliver: SliverList(
                         delegate: SliverChildBuilderDelegate(
-                          (context, index) => Image.network(
-                            pages[index],
-                            width: double.infinity,
-                            fit: BoxFit.fitWidth,
-                            alignment: Alignment.topCenter,
-                            gaplessPlayback: true,
-                            loadingBuilder: (context, child, event) {
-                              if (event == null) return child;
-                              return const SizedBox(
-                                height: 320,
-                                child: Center(
-                                  child: CircularProgressIndicator(
-                                    color: Colors.white,
+                          (context, index) => LayoutBuilder(
+                            builder: (context, constraints) {
+                              final imageWidth = constraints.maxWidth * _zoom;
+                              return Align(
+                                alignment: Alignment.topCenter,
+                                child: Image.network(
+                                  pages[index],
+                                  width: imageWidth,
+                                  fit: _fitMode.fit,
+                                  alignment: Alignment.topCenter,
+                                  gaplessPlayback: true,
+                                  loadingBuilder: (context, child, event) {
+                                    if (event == null) return child;
+                                    return const SizedBox(
+                                      height: 320,
+                                      child: Center(
+                                        child: CircularProgressIndicator(
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  errorBuilder: (_, __, ___) => const SizedBox(
+                                    height: 320,
+                                    child: Center(
+                                      child: Icon(
+                                        Icons.broken_image_rounded,
+                                        color: Colors.white54,
+                                        size: 64,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               );
                             },
-                            errorBuilder: (_, __, ___) => const SizedBox(
-                              height: 320,
-                              child: Center(
-                                child: Icon(
-                                  Icons.broken_image_rounded,
-                                  color: Colors.white54,
-                                  size: 64,
-                                ),
-                              ),
-                            ),
                           ),
                           childCount: pages.length,
                         ),
@@ -168,6 +228,55 @@ class _MangaReaderPageState extends State<MangaReaderPage> {
                             ],
                           ),
                         ),
+                        IconButton(
+                          tooltip: widget.previousChapter == null
+                              ? 'No previous chapter'
+                              : 'Previous chapter',
+                          onPressed: widget.onPrevious,
+                          icon: const Icon(Icons.skip_previous_rounded,
+                              color: Colors.white),
+                        ),
+                        IconButton(
+                          tooltip: widget.nextChapter == null
+                              ? 'No next chapter'
+                              : 'Next chapter',
+                          onPressed: widget.onNext,
+                          icon: const Icon(Icons.skip_next_rounded,
+                              color: Colors.white),
+                        ),
+                        PopupMenuButton<_MangaFitMode>(
+                          tooltip: 'Fit options',
+                          icon: const Icon(Icons.photo_size_select_large_rounded,
+                              color: Colors.white),
+                          onSelected: (mode) => setState(() => _fitMode = mode),
+                          itemBuilder: (context) => [
+                            for (final mode in _MangaFitMode.values)
+                              PopupMenuItem(
+                                value: mode,
+                                child: Text(mode.label),
+                              ),
+                          ],
+                        ),
+                        IconButton(
+                          tooltip: 'Zoom out',
+                          onPressed: _zoom > _minZoom ? _zoomOut : null,
+                          icon: const Icon(Icons.zoom_out_rounded,
+                              color: Colors.white),
+                        ),
+                        IconButton(
+                          tooltip: 'Zoom in',
+                          onPressed: _zoom < _maxZoom ? _zoomIn : null,
+                          icon: const Icon(Icons.zoom_in_rounded,
+                              color: Colors.white),
+                        ),
+                        IconButton(
+                          tooltip: 'Reset view',
+                          onPressed: _zoom == 1.0 && _fitMode == _MangaFitMode.width
+                              ? null
+                              : _resetView,
+                          icon: const Icon(Icons.restart_alt_rounded,
+                              color: Colors.white),
+                        ),
                       ],
                     ),
                   ),
@@ -205,7 +314,7 @@ class _MangaReaderPageState extends State<MangaReaderPage> {
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text(
-                              'Webtoon scroll • ${pages.length} pages',
+                              'Webtoon scroll • ${pages.length} pages • ${_fitMode.label} • ${(_zoom * 100).round()}%',
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 13,
