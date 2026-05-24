@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 
+import 'package:cryptography/cryptography.dart';
 import 'package:dio/dio.dart';
 import 'package:logger/logger.dart';
 
@@ -18,10 +19,12 @@ class WtrNovelSource implements ContentSource {
       : _client = client ?? WtrProxyClient(),
         _log = logger ?? Logger();
 
+  static const _aesKey = 'IJAFUUxjM25hyzL2AZrn0wl7cESED6Ru';
+  static const _googleTranslateApiKey =
+      'AIzaSyATBXajvzQLTDHEQbcpq0Ihe0vWDHmO520';
+
   final WtrProxyClient _client;
   final Logger _log;
-
-  // ── ContentSource identity ────────────────────────────────────────────────
 
   @override
   String get id => 'wtr_novel';
@@ -40,8 +43,6 @@ class WtrNovelSource implements ContentSource {
 
   @override
   String? get iconAsset => null;
-
-  // ── Home ──────────────────────────────────────────────────────────────────
 
   @override
   Future<List<ContentItem>> getHome() async {
@@ -91,8 +92,6 @@ class WtrNovelSource implements ContentSource {
     }
   }
 
-  // ── Search ────────────────────────────────────────────────────────────────
-
   @override
   Future<List<ContentItem>> search(String query) async {
     if (query.trim().isEmpty) return const [];
@@ -110,8 +109,6 @@ class WtrNovelSource implements ContentSource {
       return const [];
     }
   }
-
-  // ── Details ───────────────────────────────────────────────────────────────
 
   @override
   Future<ContentDetails> getDetails(ContentItem item) async {
@@ -132,8 +129,6 @@ class WtrNovelSource implements ContentSource {
       return ContentDetails.fromItem(item);
     }
   }
-
-  // ── Chapters ──────────────────────────────────────────────────────────────
 
   @override
   Future<List<ChapterItem>> getChapters(ContentItem item) async {
@@ -160,8 +155,6 @@ class WtrNovelSource implements ContentSource {
     }
   }
 
-  // ── Chapter content ───────────────────────────────────────────────────────
-
   @override
   Future<String> getChapterContent({
     required ContentItem item,
@@ -172,7 +165,7 @@ class WtrNovelSource implements ContentSource {
       final res = await _client.post(
         path: '/api/reader/get',
         body: {
-          'translate': 'ai',
+          'translate': 'web',
           'language': 'en',
           'raw_id': item.rawId ?? item.id,
           'chapter_no': chapterNo,
@@ -181,17 +174,20 @@ class WtrNovelSource implements ContentSource {
           'chapter_id': chapterId,
         },
       );
-      return _extractText(res.data);
-    } on DioException catch (e) {
-      _log.w('WtrNovelSource.getChapterContent failed', error: e);
-      return 'Chapter $chapterNo\n\nContent unavailable right now.';
-    } catch (e) {
-      _log.e('WtrNovelSource.getChapterContent unexpected error', error: e);
+
+      final lines = await _extractChapterLines(res.data);
+      if (lines.isEmpty) {
+        return 'Chapter $chapterNo\n\nNo chapter text available.';
+      }
+
+      final translated = await _translateHtmlLines(lines);
+      return (translated.isNotEmpty ? translated : lines).join('\n\n');
+    } catch (e, st) {
+      _log.e('WtrNovelSource.getChapterContent failed',
+          error: e, stackTrace: st);
       return 'Chapter $chapterNo\n\nContent unavailable right now.';
     }
   }
-
-  // ── Manga images / Anime episode (not applicable for novels) ─────────────
 
   @override
   Future<List<String>> getChapterImages({
@@ -208,8 +204,6 @@ class WtrNovelSource implements ContentSource {
     required int episodeNo,
   }) async =>
       null;
-
-  // ── Parsers ───────────────────────────────────────────────────────────────
 
   List<ContentItem> _parseItemList(dynamic data) {
     dynamic resolved = data;
@@ -240,18 +234,18 @@ class WtrNovelSource implements ContentSource {
 
     final series = _dig(resolved, ['pageProps', 'series']);
     final items = series is List
-      ? series
-      : series is Map<String, dynamic>
-        ? (series['data'] ?? series['items'] ?? series['series'])
-        : null;
+        ? series
+        : series is Map<String, dynamic>
+            ? (series['data'] ?? series['items'] ?? series['series'])
+            : null;
 
     if (items is! List) return const [];
 
     return items
-      .whereType<Map<String, dynamic>>()
-      .map(_itemFromJson)
-      .take(limit)
-      .toList(growable: false);
+        .whereType<Map<String, dynamic>>()
+        .map(_itemFromJson)
+        .take(limit)
+        .toList(growable: false);
   }
 
   dynamic _dig(dynamic value, List<String> keys) {
@@ -301,7 +295,7 @@ class WtrNovelSource implements ContentSource {
       author: '${payload['author'] ?? json['author'] ?? 'Unknown'}',
       description:
           '${payload['description'] ?? json['description'] ?? json['desc'] ?? 'No description available.'}',
-        coverUrl: _maybeProxyUrl(json['image']?.toString() ??
+      coverUrl: _maybeProxyUrl(json['image']?.toString() ??
           payload['image']?.toString() ??
           json['cover']?.toString() ??
           json['cover_url']?.toString()),
@@ -312,16 +306,10 @@ class WtrNovelSource implements ContentSource {
     );
   }
 
-  /// If running on web, rewrite `url` to route through the CORS proxy so
-  /// browser image requests aren't blocked by remote CDN CORS policies.
-  /// On native platforms the original URL is returned unchanged.
   String? _maybeProxyUrl(String? url) {
     if (url == null || url.trim().isEmpty) return null;
     if (!kIsWeb) return url;
-    // Use the same proxy host as the API client. The proxy expects a `url`
-    // query parameter for GET passthrough (works with the deployed proxy).
-    final proxied = 'https://cors-bypasser-pro.vercel.app/proxy?url=${Uri.encodeComponent(url)}';
-    return proxied;
+    return 'https://cors-bypasser-pro.vercel.app/proxy?url=${Uri.encodeComponent(url)}';
   }
 
   ContentDetails _parseHtmlDetails(String html, ContentItem fallback) {
@@ -392,96 +380,144 @@ class WtrNovelSource implements ContentSource {
     );
   }
 
-  String _extractText(dynamic data) {
-    // The proxy may return the payload as a JSON string — decode it first.
-    dynamic root = data;
-    if (root is String) {
-      try {
-        root = jsonDecode(root);
-      } catch (_) {
-        return root as String;
-      }
-    }
+  Future<List<String>> _extractChapterLines(dynamic data) async {
+    dynamic root = _decodeMaybeJson(data);
 
-    // The proxy itself wraps the response: { "body": <actual response> }
-    // Unwrap one level if needed.
     if (root is Map<String, dynamic> && root.containsKey('body')) {
-      final inner = root['body'];
-      if (inner is String) {
-        try {
-          root = jsonDecode(inner);
-        } catch (_) {
-          root = inner;
-        }
-      } else {
-        root = inner;
-      }
+      root = _decodeMaybeJson(root['body']);
     }
 
-    // Re-decode if still a string after proxy unwrap.
-    if (root is String) {
-      try {
-        root = jsonDecode(root);
-      } catch (_) {
-        return root as String;
-      }
+    if (root is! Map<String, dynamic>) return const [];
+
+    dynamic body = root['data']?['data']?['content'] ??
+        root['data']?['data']?['body'] ??
+        root['data']?['content'] ??
+        root['data']?['body'] ??
+        root['content'] ??
+        root['body'];
+
+    if (body is String && RegExp(r'^(arr|str):').hasMatch(body)) {
+      body = await _decryptWtrBody(body);
     }
 
-    if (root is! Map<String, dynamic>) {
-      return 'No chapter text available.';
-    }
-
-    // ── Extract glossary terms: glossary_data.terms = [[en, zh], ...]
-    final glossaryData = root['glossary_data'];
-    final terms = <int, String>{};
-    if (glossaryData is Map<String, dynamic>) {
-      final termsList = glossaryData['terms'];
-      if (termsList is List) {
-        for (var i = 0; i < termsList.length; i++) {
-          final entry = termsList[i];
-          if (entry is List && entry.isNotEmpty) {
-            terms[i] = '${entry[0]}'; // English term at index 0
-          }
-        }
-      }
-    }
-
-    // ── Navigate to body: root.data.data.body
-    final outerData = root['data'];
-    if (outerData is! Map<String, dynamic>) {
-      return 'No chapter text available.';
-    }
-    final innerData = outerData['data'];
-    if (innerData is! Map<String, dynamic>) {
-      return 'No chapter text available.';
-    }
-    final body = innerData['body'];
-    if (body is! List || body.isEmpty) {
-      return 'No chapter text available.';
-    }
-
-    // ── Join lines and resolve glossary placeholders
-    final lines = body
-        .map((line) => _resolveGlossary('$line', terms))
-        .map((line) => line.trim())
-        .where((line) => line.isNotEmpty)
-        .toList();
-
-    return lines.isEmpty ? 'No chapter text available.' : lines.join('\n\n');
+    return _htmlToLines(body);
   }
 
-  /// Replaces ※N⛬ and ※N〓 placeholders with the English term at index N
-  /// from the glossary. Unknown indices are left as-is.
-  String _resolveGlossary(String line, Map<int, String> terms) {
-    if (terms.isEmpty) return line;
-    return line.replaceAllMapped(
-      RegExp(r'※(\d+)[⛬〓]'),
-      (match) {
-        final index = int.tryParse(match.group(1) ?? '');
-        if (index == null) return match.group(0)!;
-        return terms[index] ?? match.group(0)!;
-      },
+  dynamic _decodeMaybeJson(dynamic value) {
+    if (value is! String) return value;
+    try {
+      return jsonDecode(value);
+    } catch (_) {
+      return value;
+    }
+  }
+
+  Future<dynamic> _decryptWtrBody(String body) async {
+    final match = RegExp(r'^(arr|str):([^:]+):([^:]+):(.+)$').firstMatch(body);
+    if (match == null) {
+      throw Exception('Invalid WTR encrypted body format');
+    }
+
+    final type = match.group(1)!;
+    final nonce = base64Decode(match.group(2)!);
+    final tag = base64Decode(match.group(3)!);
+    final cipherText = base64Decode(match.group(4)!);
+
+    final clearBytes = await AesGcm.with256bits().decrypt(
+      SecretBox(cipherText, nonce: nonce, mac: Mac(tag)),
+      secretKey: SecretKey(utf8.encode(_aesKey)),
     );
+
+    final decoded = utf8.decode(clearBytes);
+    return type == 'arr' ? jsonDecode(decoded) : decoded;
+  }
+
+  List<String> _htmlToLines(dynamic value) {
+    if (value == null) return const [];
+
+    if (value is List) {
+      return value
+          .map((e) => _clean('$e'))
+          .where((e) => e.isNotEmpty)
+          .toList(growable: false);
+    }
+
+    return '$value'
+        .replaceAll(RegExp(r'<br\s*/?>', caseSensitive: false), '\n')
+        .replaceAll(RegExp(r'</p>', caseSensitive: false), '\n')
+        .replaceAll(RegExp(r'</div>', caseSensitive: false), '\n')
+        .replaceAll(RegExp(r'<[^>]+>'), '')
+        .split('\n')
+        .map(_clean)
+        .where((e) => e.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  Future<List<String>> _translateHtmlLines(
+    List<String> lines, {
+    String from = 'zh-CN',
+    String to = 'en',
+  }) async {
+    if (lines.isEmpty) return const [];
+
+    final wrapped = List.generate(
+      lines.length,
+      (i) => '<a i=$i>${_escapeHtml(lines[i])}</a>',
+    );
+
+    final res = await Dio().post(
+      'https://translate-pa.googleapis.com/v1/translateHtml',
+      data: [
+        [wrapped, from, to],
+        'te_lib',
+      ],
+      options: Options(
+        headers: {
+          'Content-Type': 'application/json+protobuf',
+          'Accept': 'application/json+protobuf',
+          'X-Goog-API-Key': _googleTranslateApiKey,
+        },
+        responseType: ResponseType.json,
+      ),
+    );
+
+    final data = res.data;
+    if (data is! List || data.isEmpty || data.first is! List) return const [];
+
+    return (data.first as List)
+        .map((e) => _stripTranslateTag('$e'))
+        .where((e) => e.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  String _escapeHtml(String value) {
+    return value
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+  }
+
+  String _stripTranslateTag(String value) {
+    return _clean(
+      value
+          .replaceFirst(RegExp(r'^<a\s+i=\d+>', caseSensitive: false), '')
+          .replaceFirst(RegExp(r'</a>$', caseSensitive: false), ''),
+    );
+  }
+
+  String _clean(String value) {
+    return value
+        .replaceAll('&nbsp;', ' ')
+        .replaceAll('&amp;', '&')
+        .replaceAll('&lt;', '<')
+        .replaceAll('&gt;', '>')
+        .replaceAll('&quot;', '"')
+        .replaceAll('&#39;', "'")
+        .replaceAll('\u200b', '')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
   }
 
   Map<String, dynamic> _asMap(dynamic value) =>
@@ -492,8 +528,6 @@ class WtrNovelSource implements ContentSource {
       .replaceAll(RegExp(r'[^a-z0-9]+'), '-')
       .replaceAll(RegExp(r'-+'), '-')
       .replaceAll(RegExp(r'^-|-$'), '');
-
-  // ── Demo fallbacks ────────────────────────────────────────────────────────
 
   static final _demoItems = <ContentItem>[
     const ContentItem(
