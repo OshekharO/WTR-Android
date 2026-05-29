@@ -54,10 +54,10 @@ class MangaSource implements ContentSource {
   final Map<String, String> _publicRouteBySlug = {};
 
   @override
-  String get id => 'manga_stub';
+  String get id => 'asura_manga';
 
   @override
-  String get name => 'Manga';
+  String get name => 'AsuraScans Manga';
 
   @override
   String get description => 'AsuraScans manga source';

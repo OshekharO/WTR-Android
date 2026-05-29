@@ -9,7 +9,7 @@ class AnimeSource implements ContentSource {
   const AnimeSource();
 
   @override
-  String get id => 'anime_stub';
+  String get id => 'anime';
 
   @override
   String get name => 'Anime';
