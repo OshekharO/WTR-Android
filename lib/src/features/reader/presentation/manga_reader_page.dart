@@ -196,86 +196,101 @@ class _MangaReaderPageState extends State<MangaReaderPage> {
                     ),
                   ),
                   child: SafeArea(
-                    child: Row(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        IconButton(
-                          icon: const Icon(Icons.arrow_back_rounded,
-                              color: Colors.white),
-                          onPressed: () => Navigator.pop(context),
-                        ),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Chapter ${widget.chapterNo}',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 16,
-                                ),
-                              ),
-                              if (widget.chapterTitle.isNotEmpty)
-                                Text(
-                                  widget.chapterTitle,
-                                  style: const TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: 12,
+                        Row(
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.arrow_back_rounded,
+                                  color: Colors.white),
+                              onPressed: () => Navigator.pop(context),
+                            ),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Chapter ${widget.chapterNo}',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 16,
+                                    ),
                                   ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                            ],
-                          ),
-                        ),
-                        IconButton(
-                          tooltip: widget.previousChapter == null
-                              ? 'No previous chapter'
-                              : 'Previous chapter',
-                          onPressed: widget.onPrevious,
-                          icon: const Icon(Icons.skip_previous_rounded,
-                              color: Colors.white),
-                        ),
-                        IconButton(
-                          tooltip: widget.nextChapter == null
-                              ? 'No next chapter'
-                              : 'Next chapter',
-                          onPressed: widget.onNext,
-                          icon: const Icon(Icons.skip_next_rounded,
-                              color: Colors.white),
-                        ),
-                        PopupMenuButton<_MangaFitMode>(
-                          tooltip: 'Fit options',
-                          icon: const Icon(Icons.photo_size_select_large_rounded,
-                              color: Colors.white),
-                          onSelected: (mode) => setState(() => _fitMode = mode),
-                          itemBuilder: (context) => [
-                            for (final mode in _MangaFitMode.values)
-                              PopupMenuItem(
-                                value: mode,
-                                child: Text(mode.label),
+                                  if (widget.chapterTitle.isNotEmpty)
+                                    Text(
+                                      widget.chapterTitle,
+                                      style: const TextStyle(
+                                        color: Colors.white70,
+                                        fontSize: 12,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                ],
                               ),
+                            ),
+                            IconButton(
+                              tooltip: widget.previousChapter == null
+                                  ? 'No previous chapter'
+                                  : 'Previous chapter',
+                              onPressed: widget.onPrevious,
+                              icon: const Icon(Icons.skip_previous_rounded,
+                                  color: Colors.white),
+                            ),
+                            IconButton(
+                              tooltip: widget.nextChapter == null
+                                  ? 'No next chapter'
+                                  : 'Next chapter',
+                              onPressed: widget.onNext,
+                              icon: const Icon(Icons.skip_next_rounded,
+                                  color: Colors.white),
+                            ),
                           ],
                         ),
-                        IconButton(
-                          tooltip: 'Zoom out',
-                          onPressed: _zoom > _minZoom ? _zoomOut : null,
-                          icon: const Icon(Icons.zoom_out_rounded,
-                              color: Colors.white),
-                        ),
-                        IconButton(
-                          tooltip: 'Zoom in',
-                          onPressed: _zoom < _maxZoom ? _zoomIn : null,
-                          icon: const Icon(Icons.zoom_in_rounded,
-                              color: Colors.white),
-                        ),
-                        IconButton(
-                          tooltip: 'Reset view',
-                          onPressed: _zoom == 1.0 && _fitMode == _MangaFitMode.width
-                              ? null
-                              : _resetView,
-                          icon: const Icon(Icons.restart_alt_rounded,
-                              color: Colors.white),
+                        const SizedBox(height: 8),
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: [
+                              PopupMenuButton<_MangaFitMode>(
+                                tooltip: 'Fit options',
+                                icon: const Icon(
+                                  Icons.photo_size_select_large_rounded,
+                                  color: Colors.white,
+                                ),
+                                onSelected: (mode) => setState(() => _fitMode = mode),
+                                itemBuilder: (context) => [
+                                  for (final mode in _MangaFitMode.values)
+                                    PopupMenuItem(
+                                      value: mode,
+                                      child: Text(mode.label),
+                                    ),
+                                ],
+                              ),
+                              IconButton(
+                                tooltip: 'Zoom out',
+                                onPressed: _zoom > _minZoom ? _zoomOut : null,
+                                icon: const Icon(Icons.zoom_out_rounded,
+                                    color: Colors.white),
+                              ),
+                              IconButton(
+                                tooltip: 'Zoom in',
+                                onPressed: _zoom < _maxZoom ? _zoomIn : null,
+                                icon: const Icon(Icons.zoom_in_rounded,
+                                    color: Colors.white),
+                              ),
+                              IconButton(
+                                tooltip: 'Reset view',
+                                onPressed: _zoom == 1.0 && _fitMode == _MangaFitMode.width
+                                    ? null
+                                    : _resetView,
+                                icon: const Icon(Icons.restart_alt_rounded,
+                                    color: Colors.white),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
