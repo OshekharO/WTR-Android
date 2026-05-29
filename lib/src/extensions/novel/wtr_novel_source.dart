@@ -465,23 +465,30 @@ class WtrNovelSource implements ContentSource {
       (i) => '<a i=$i>${_escapeHtml(lines[i])}</a>',
     );
 
+    final payload = jsonEncode([
+      [wrapped, from, to],
+      'te_lib',
+    ]);
+
     final res = await Dio().post(
       'https://translate-pa.googleapis.com/v1/translateHtml',
-      data: [
-        [wrapped, from, to],
-        'te_lib',
-      ],
+      data: payload,
       options: Options(
+        contentType: 'application/json+protobuf',
         headers: {
-          'Content-Type': 'application/json+protobuf',
           'Accept': 'application/json+protobuf',
           'X-Goog-API-Key': _googleTranslateApiKey,
+          'User-Agent':
+              'Mozilla/5.0 AppleWebKit/537.36 Chrome/124 Safari/537.36',
         },
-        responseType: ResponseType.json,
+        responseType: ResponseType.plain,
       ),
     );
 
-    final data = res.data;
+    final text = res.data is String ? res.data as String : '${res.data}';
+    if (text.isEmpty) return const [];
+
+    final data = jsonDecode(text);
     if (data is! List || data.isEmpty || data.first is! List) return const [];
 
     return (data.first as List)
