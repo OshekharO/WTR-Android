@@ -156,7 +156,7 @@ class MangaSource implements ContentSource {
       final slug = item.slug ?? _slugify(item.title);
       final res = await _dio.get('/api/series/$slug/chapters');
       final chapters = _extractList(_decode(res.data));
-      return chapters
+      final chapterItems = chapters
           .whereType<Map<String, dynamic>>()
           .map((chapter) => ChapterItem(
                 id: int.tryParse('${chapter['id'] ?? 0}') ?? 0,
@@ -165,6 +165,8 @@ class MangaSource implements ContentSource {
                 updatedAt: DateTime.tryParse('${chapter['published_at'] ?? ''}'),
               ))
           .toList(growable: false);
+      chapterItems.sort((a, b) => a.number.compareTo(b.number));
+      return chapterItems;
     } on DioException catch (e) {
       _log.w('MangaSource.getChapters failed', error: e);
       return const [];
