@@ -57,22 +57,6 @@ class WtrNovelSource implements ContentSource {
     }
   }
 
-  Future<List<ContentItem>> getLatest({int page = 1, int limit = 10}) async {
-    try {
-      final res = await _client.get(
-        '/_next/data/4VGoIyKJTGgGftVZVdBYc/en/novel-list.json',
-        queryParameters: {'page': page, 'locale': 'en'},
-      );
-      return _parseLatestItemList(res.data, limit: limit);
-    } on DioException catch (e) {
-      _log.w('WtrNovelSource.getLatest failed', error: e);
-      return _demoItems.take(limit).toList(growable: false);
-    } catch (e) {
-      _log.e('WtrNovelSource.getLatest unexpected error', error: e);
-      return _demoItems.take(limit).toList(growable: false);
-    }
-  }
-
   Future<List<ContentItem>> getRanking({
     required String type,
     int limit = 10,
@@ -219,32 +203,6 @@ class WtrNovelSource implements ContentSource {
     return items
         .whereType<Map<String, dynamic>>()
         .map(_itemFromJson)
-        .toList(growable: false);
-  }
-
-  List<ContentItem> _parseLatestItemList(dynamic data, {int limit = 10}) {
-    dynamic resolved = data;
-    if (resolved is String) {
-      try {
-        resolved = jsonDecode(resolved);
-      } catch (_) {
-        return const [];
-      }
-    }
-
-    final series = _dig(resolved, ['pageProps', 'series']);
-    final items = series is List
-        ? series
-        : series is Map<String, dynamic>
-            ? (series['data'] ?? series['items'] ?? series['series'])
-            : null;
-
-    if (items is! List) return const [];
-
-    return items
-        .whereType<Map<String, dynamic>>()
-        .map(_itemFromJson)
-        .take(limit)
         .toList(growable: false);
   }
 

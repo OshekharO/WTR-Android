@@ -258,6 +258,12 @@ class _DetailsPageState extends State<DetailsPage> {
                     final similar = similarSnap.data ?? const [];
                     if (similar.isEmpty) return const SizedBox.shrink();
 
+                    final showSimilarControls = [
+                      TargetPlatform.windows,
+                      TargetPlatform.macOS,
+                      TargetPlatform.linux,
+                    ].contains(Theme.of(context).platform);
+
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -278,16 +284,19 @@ class _DetailsPageState extends State<DetailsPage> {
                               height: 250,
                               child: Row(
                                 children: [
-                                  IconButton.filledTonal(
-                                    onPressed: () =>
-                                        _scrollSimilarBy(-scrollStep),
-                                    icon: const Icon(Icons.chevron_left),
-                                  ),
-                                  const SizedBox(width: 8),
+                                  if (showSimilarControls) ...[
+                                    IconButton.filledTonal(
+                                      onPressed: () =>
+                                          _scrollSimilarBy(-scrollStep),
+                                      icon: const Icon(Icons.chevron_left),
+                                    ),
+                                    const SizedBox(width: 8),
+                                  ],
                                   Expanded(
                                     child: ListView.separated(
                                       controller: _similarScrollController,
                                       scrollDirection: Axis.horizontal,
+                                      physics: const BouncingScrollPhysics(),
                                       itemCount: similar.length,
                                       separatorBuilder: (_, __) =>
                                           const SizedBox(width: 12),
@@ -398,12 +407,14 @@ class _DetailsPageState extends State<DetailsPage> {
                                       },
                                     ),
                                   ),
-                                  const SizedBox(width: 8),
-                                  IconButton.filledTonal(
-                                    onPressed: () =>
-                                        _scrollSimilarBy(scrollStep),
-                                    icon: const Icon(Icons.chevron_right),
-                                  ),
+                                  if (showSimilarControls) ...[
+                                    const SizedBox(width: 8),
+                                    IconButton.filledTonal(
+                                      onPressed: () =>
+                                          _scrollSimilarBy(scrollStep),
+                                      icon: const Icon(Icons.chevron_right),
+                                    ),
+                                  ],
                                 ],
                               ),
                             );

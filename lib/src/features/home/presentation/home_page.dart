@@ -54,7 +54,6 @@ class _HomePageState extends State<HomePage> {
     if (_source is WtrNovelSource) {
       final wtr = _source as WtrNovelSource;
       final results = await Future.wait<List<ContentItem>>([
-        wtr.getLatest(limit: 10),
         wtr.getRanking(type: 'daily', limit: 10),
         wtr.getRanking(type: 'weekly', limit: 10),
         wtr.getRanking(type: 'monthly', limit: 10),
@@ -64,26 +63,21 @@ class _HomePageState extends State<HomePage> {
         items: const [],
         customSections: [
           _HomeSection(
-            title: 'Latest',
-            subtitle: 'Fresh additions from the novel feed',
+            title: 'Today Trending',
+            subtitle: 'What readers are opening right now',
             items: results[0],
             featured: true,
             cardWidth: 220,
           ),
           _HomeSection(
-            title: 'Today Trending',
-            subtitle: 'What readers are opening right now',
-            items: results[1],
-          ),
-          _HomeSection(
             title: 'Weekly',
             subtitle: 'Top novels over the last seven days',
-            items: results[2],
+            items: results[1],
           ),
           _HomeSection(
             title: 'Monthly',
             subtitle: 'Top novels over the last thirty days',
-            items: results[3],
+            items: results[2],
           ),
         ],
       );
@@ -290,7 +284,7 @@ class _HeroBanner extends StatelessWidget {
   }
 }
 
-class _SectionRail extends StatelessWidget {
+class _SectionRail extends StatefulWidget {
   const _SectionRail({
     required this.title,
     required this.items,
@@ -306,29 +300,81 @@ class _SectionRail extends StatelessWidget {
   final bool featured;
 
   @override
+  State<_SectionRail> createState() => _SectionRailState();
+}
+
+class _SectionRailState extends State<_SectionRail> {
+  final _scrollController = ScrollController();
+
+  void _scrollBy(double delta) {
+    if (!_scrollController.hasClients) return;
+    final pos = _scrollController.position;
+    final target = (_scrollController.offset + delta)
+        .clamp(pos.minScrollExtent, pos.maxScrollExtent);
+    _scrollController.animateTo(
+      target,
+      duration: const Duration(milliseconds: 280),
+      curve: Curves.easeOut,
+    );
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    if (items.isEmpty) {
+    if (widget.items.isEmpty) {
       return const SizedBox.shrink();
     }
+
+    final showControls = [
+      TargetPlatform.windows,
+      TargetPlatform.macOS,
+      TargetPlatform.linux,
+    ].contains(Theme.of(context).platform);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _SectionHeader(title: title, subtitle: subtitle),
+        _SectionHeader(title: widget.title, subtitle: widget.subtitle),
         const SizedBox(height: 12),
         SizedBox(
-          height: featured ? 318 : 256,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            itemCount: items.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 12),
-            itemBuilder: (context, index) => _RailCard(
-              item: items[index],
-              width: cardWidth,
-              featured: featured,
-              rank: index + 1,
-            ),
+          height: widget.featured ? 318 : 256,
+          child: Row(
+            children: [
+              if (showControls) ...[
+                IconButton.filledTonal(
+                  onPressed: () => _scrollBy(-(widget.cardWidth + 12)),
+                  icon: const Icon(Icons.chevron_left),
+                ),
+                const SizedBox(width: 8),
+              ],
+              Expanded(
+                child: ListView.separated(
+                  controller: _scrollController,
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  itemCount: widget.items.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 12),
+                  itemBuilder: (context, index) => _RailCard(
+                    item: widget.items[index],
+                    width: widget.cardWidth,
+                    featured: widget.featured,
+                    rank: index + 1,
+                  ),
+                ),
+              ),
+              if (showControls) ...[
+                const SizedBox(width: 8),
+                IconButton.filledTonal(
+                  onPressed: () => _scrollBy(widget.cardWidth + 12),
+                  icon: const Icon(Icons.chevron_right),
+                ),
+              ],
+            ],
           ),
         ),
       ],
