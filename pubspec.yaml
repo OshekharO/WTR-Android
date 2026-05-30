@@ -21,10 +21,10 @@ dependencies:
   adaptive_theme: ^3.6.0
   responsive_framework: ^1.5.1
   nb_utils: ^7.1.4
-  mix: ^1.5.2
+  mix: ^2.0.3
   cloudflare_bypass: ^0.0.1
   cloudflare_interceptor: ^0.0.3
-  dart_web_scraper: ^0.1.0
+  dart_web_scraper: ^0.2.13
   flutter_cors_image: ^0.3.13
   photo_view: ^0.15.0
   chewie: ^1.14.1
@@ -36,7 +36,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
 
-  flutter_lints: ^5.0.0
+  flutter_lints: ^6.0.0
   flutter_launcher_icons: ^0.14.4
 
 flutter:

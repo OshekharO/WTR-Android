@@ -2,7 +2,7 @@ import 'package:dio/dio.dart';
 
 import '../../../core/data/demo_books.dart';
 import '../../../core/network/dio_client.dart';
-import '../../../extensions/novel/wtr_novel_source.dart';
+import '../../../extensions/novel/wtr_source.dart';
 import '../../books/data/models/book.dart';
 
 class HomeRepository {

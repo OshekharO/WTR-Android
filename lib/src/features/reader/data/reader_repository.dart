@@ -2,7 +2,7 @@ import 'package:dio/dio.dart';
 import 'dart:convert';
 
 import '../../../core/network/dio_client.dart';
-import '../../../extensions/novel/wtr_novel_source.dart';
+import '../../../extensions/novel/wtr_source.dart';
 import 'models/chapter_request.dart';
 import 'models/reader_chapter_content.dart';
 

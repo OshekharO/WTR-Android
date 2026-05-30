@@ -2,9 +2,9 @@ import 'package:flutter/foundation.dart';
 
 import '../../core/storage/prefs_service.dart';
 import '../anime/anime_source.dart';
-import '../manga/manga_source.dart';
+import '../manga/asura_source.dart';
 import '../models/content_source.dart';
-import '../novel/wtr_novel_source.dart';
+import '../novel/wtr_source.dart';
 
 /// Holds all registered [ContentSource] instances and tracks which one is
 /// currently active. Widgets listen via [ChangeNotifier].

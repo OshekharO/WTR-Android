@@ -27,7 +27,20 @@ class AnimeSource implements ContentSource {
   String? get iconAsset => null;
 
   @override
-  Future<List<ContentItem>> getHome() async => const [];
+  @override
+  Future<List<ContentItem>> getHome() async => const [
+        ContentItem(
+          id: 9001,
+          rawId: 9001,
+          slug: 'demo-anime',
+          title: 'Demo Anime',
+          author: 'Studio Test',
+          description: 'A demo anime entry for testing the video player.',
+          coverUrl: 'https://placekitten.com/400/600',
+          chapterCount: 1,
+          sourceId: 'anime',
+        ),
+      ];
 
   @override
   Future<List<ContentItem>> search(String query) async => const [];
@@ -37,7 +50,8 @@ class AnimeSource implements ContentSource {
       ContentDetails.fromItem(item);
 
   @override
-  Future<List<ChapterItem>> getChapters(ContentItem item) async => const [];
+  Future<List<ChapterItem>> getChapters(ContentItem item) async =>
+      const [ChapterItem(id: 1, number: 1, title: 'Episode 1')];
 
   @override
   Future<String> getChapterContent({

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/widgets/proxied_image.dart';
-import '../../../extensions/manga/manga_source.dart';
+import '../../../extensions/manga/asura_source.dart';
 import '../../../extensions/models/content_item.dart';
 import '../../../extensions/models/content_source.dart';
-import '../../../extensions/novel/wtr_novel_source.dart';
+import '../../../extensions/novel/wtr_source.dart';
 import '../../../extensions/registry/source_registry.dart';
 import '../../details/presentation/details_page.dart';
 

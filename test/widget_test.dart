@@ -6,7 +6,7 @@ import 'package:otaku_stream/src/core/storage/prefs_service.dart';
 import 'package:otaku_stream/src/extensions/models/chapter_item.dart';
 import 'package:otaku_stream/src/extensions/models/content_details.dart';
 import 'package:otaku_stream/src/extensions/models/content_item.dart';
-import 'package:otaku_stream/src/extensions/novel/wtr_novel_source.dart';
+import 'package:otaku_stream/src/extensions/novel/wtr_source.dart';
 import 'package:otaku_stream/src/extensions/registry/source_registry.dart';
 import 'package:otaku_stream/src/features/home/presentation/home_page.dart';
 
@@ -48,8 +48,7 @@ class _FakeWtrNovelSource extends WtrNovelSource {
   @override
   Future<List<ContentItem>> getHome() async => const [];
 
-  @override
-  Future<List<ContentItem>> getLatest({int page = 1, int limit = 10}) async =>
+    Future<List<ContentItem>> getLatest({int page = 1, int limit = 10}) async =>
       _items.take(limit).toList(growable: false);
 
   @override
