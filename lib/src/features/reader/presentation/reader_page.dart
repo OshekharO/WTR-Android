@@ -168,12 +168,7 @@ class _NovelReaderPageState extends State<_NovelReaderPage> {
     });
   }
 
-  Future<void> _saveFontSize() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setDouble(_prefsKey, _fontSize);
-    } catch (_) {}
-  }
+  
 
   Future<void> _saveSettings() async {
     try {
@@ -198,13 +193,7 @@ class _NovelReaderPageState extends State<_NovelReaderPage> {
     await _saveSettings();
   }
 
-  void _resetSettings() {
-    setState(() {
-      _fontSize = 16.0;
-      _lineHeight = 1.7;
-    });
-    _saveSettings();
-  }
+  
 
   void _showDisplaySettings() {
     showModalBottomSheet<void>(
@@ -215,9 +204,8 @@ class _NovelReaderPageState extends State<_NovelReaderPage> {
       ),
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) {
-          String _lineHeightLabel() {
+          String lineHeightLabel() {
             final lh = _lineHeight;
-            if (lh == null) return 'Default';
             try {
               // Avoid calling double -> toString directly to prevent JS interop issues.
               final v10 = (lh * 10).round();
@@ -297,7 +285,7 @@ class _NovelReaderPageState extends State<_NovelReaderPage> {
                     ),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: Center(child: Text(_lineHeightLabel(), style: const TextStyle(fontSize: 14))),
+                      child: Center(child: Text(lineHeightLabel(), style: const TextStyle(fontSize: 14))),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
