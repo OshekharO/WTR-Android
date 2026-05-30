@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../extensions/models/chapter_item.dart';
 import '../../../extensions/models/content_item.dart';
@@ -142,6 +143,212 @@ class _NovelReaderPageState extends State<_NovelReaderPage> {
     chapterId: widget.chapterId,
     chapterNo: widget.chapterNo,
   );
+  double _fontSize = 16.0;
+  static const _prefsKey = 'reader_font_size';
+  static const _prefsKeyLineHeight = 'reader_line_height';
+  
+  double _lineHeight = 1.7;
+  
+
+  @override
+  void initState() {
+    super.initState();
+    SharedPreferences.getInstance().then((prefs) {
+      final v = prefs.getDouble(_prefsKey);
+      if (v != null && mounted) {
+        setState(() => _fontSize = v);
+      }
+      final lh = prefs.getDouble(_prefsKeyLineHeight);
+      if (mounted) {
+        setState(() {
+          if (lh != null) _lineHeight = lh;
+        });
+      }
+      
+    });
+  }
+
+  Future<void> _saveFontSize() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setDouble(_prefsKey, _fontSize);
+    } catch (_) {}
+  }
+
+  Future<void> _saveSettings() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setDouble(_prefsKey, _fontSize);
+      await prefs.setDouble(_prefsKeyLineHeight, _lineHeight);
+      
+    } catch (_) {}
+  }
+
+  Future<void> _increaseFont() async {
+    setState(() {
+      _fontSize = (_fontSize + 2).clamp(10.0, 40.0).toDouble();
+    });
+    await _saveSettings();
+  }
+
+  Future<void> _decreaseFont() async {
+    setState(() {
+      _fontSize = (_fontSize - 2).clamp(10.0, 40.0).toDouble();
+    });
+    await _saveSettings();
+  }
+
+  void _resetSettings() {
+    setState(() {
+      _fontSize = 16.0;
+      _lineHeight = 1.7;
+    });
+    _saveSettings();
+  }
+
+  void _showDisplaySettings() {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+      ),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) {
+          String _lineHeightLabel() {
+            final lh = _lineHeight;
+            if (lh == null) return 'Default';
+            try {
+              // Avoid calling double -> toString directly to prevent JS interop issues.
+              final v10 = (lh * 10).round();
+              if (v10 == 17) return 'Default';
+              final whole = v10 ~/ 10;
+              final frac = v10 % 10;
+              return frac == 0 ? '$whole' : '$whole.$frac';
+            } catch (_) {
+              return 'Default';
+            }
+          }
+          void changeLineHeight(double delta) {
+            setModalState(() => _lineHeight = (_lineHeight + delta).clamp(1.0, 2.5).toDouble());
+            setState(() {});
+            _saveSettings();
+          }
+
+          
+
+          // reset is handled via a shared method below
+
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+              left: 16,
+              right: 16,
+              top: 16,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 6),
+                const Text('FONT SIZE', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () async {
+                          await _decreaseFont();
+                          setModalState(() {});
+                        },
+                        style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 8), minimumSize: const Size(0, 36)),
+                        child: const Text('A-', style: TextStyle(fontSize: 13)),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Center(child: Text('${_fontSize.toInt()}', style: const TextStyle(fontSize: 14))),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () async {
+                          await _increaseFont();
+                          setModalState(() {});
+                        },
+                        style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 8), minimumSize: const Size(0, 36)),
+                        child: const Text('A+', style: TextStyle(fontSize: 13)),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 12),
+                const Text('LINE HEIGHT', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => changeLineHeight(-0.1),
+                        style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 8), minimumSize: const Size(0, 36)),
+                        child: const Text('Height -', style: TextStyle(fontSize: 13)),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Center(child: Text(_lineHeightLabel(), style: const TextStyle(fontSize: 14))),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => changeLineHeight(0.1),
+                        style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 8), minimumSize: const Size(0, 36)),
+                        child: const Text('Height +', style: TextStyle(fontSize: 13)),
+                      ),
+                    ),
+                  ],
+                ),
+
+                
+
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () {
+                          // Reset to defaults
+                          setModalState(() {
+                            _fontSize = 16.0;
+                            _lineHeight = 1.7;
+                          });
+                          setState(() {});
+                          _saveSettings();
+                        },
+                        style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 10), minimumSize: const Size(0, 40)),
+                        child: const Text('Reset', style: TextStyle(fontSize: 14)),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: FilledButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        },
+                        style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 10), minimumSize: const Size(0, 40)),
+                        child: const Text('Done', style: TextStyle(fontSize: 14)),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -165,6 +372,11 @@ class _NovelReaderPageState extends State<_NovelReaderPage> {
             ],
           ),
           actions: [
+            IconButton(
+              tooltip: 'Display settings',
+              onPressed: _showDisplaySettings,
+              icon: const Icon(Icons.text_fields),
+            ),
             IconButton(
               tooltip: widget.previousChapter == null
                   ? 'No previous chapter'
@@ -213,10 +425,7 @@ class _NovelReaderPageState extends State<_NovelReaderPage> {
                 const SizedBox(height: 20),
                 SelectableText(
                   content,
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyLarge
-                      ?.copyWith(height: 1.7),
+                  style: _effectiveTextStyle(context, _lineHeight, _fontSize),
                 ),
                 const SizedBox(height: 24),
                 Row(
@@ -242,5 +451,12 @@ class _NovelReaderPageState extends State<_NovelReaderPage> {
             );
           },
         ),
+      );
+}
+
+TextStyle? _effectiveTextStyle(BuildContext context, double lineHeight, double fontSize) {
+  return Theme.of(context).textTheme.bodyLarge?.copyWith(
+        height: lineHeight,
+        fontSize: fontSize,
       );
 }
