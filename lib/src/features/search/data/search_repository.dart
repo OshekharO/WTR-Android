@@ -1,8 +1,8 @@
 import 'package:dio/dio.dart';
 import 'dart:convert';
 
-import '../../../core/constants/api_constants.dart';
 import '../../../core/network/dio_client.dart';
+import '../../../extensions/novel/wtr_novel_source.dart';
 import '../../books/data/models/book.dart';
 
 class SearchRepository {
@@ -13,7 +13,7 @@ class SearchRepository {
     if (query.trim().isEmpty) return const <Book>[];
     try {
       final res = await _client.postViaProxy(
-        targetUrl: '${ApiConstants.webBaseUrl}${ApiConstants.search}',
+        targetUrl: '${WtrConstants.webBaseUrl}${WtrConstants.search}',
         body: <String, dynamic>{'text': query},
       );
       return _parseBooks(res.data);

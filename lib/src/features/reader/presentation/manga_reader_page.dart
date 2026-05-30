@@ -1,5 +1,8 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
 import '../../../extensions/models/chapter_item.dart';
 import '../../../extensions/models/content_item.dart';
@@ -64,11 +67,45 @@ class _MangaReaderPageState extends State<MangaReaderPage> {
   @override
   void initState() {
     super.initState();
-    _future = SourceRegistry.instance.active.getChapterImages(
-      item: widget.item,
-      chapterId: widget.chapterId,
-      chapterNo: widget.chapterNo,
-    );
+    _future = SourceRegistry.instance.active
+        .getChapterImages(
+          item: widget.item,
+          chapterId: widget.chapterId,
+          chapterNo: widget.chapterNo,
+        )
+        .then((pages) async {
+      // Prefetch first few images into the cache for faster display.
+      const prefetchCount = 3;
+      final toPrefetch = min(prefetchCount, pages.length);
+      final cache = DefaultCacheManager();
+      for (var i = 0; i < toPrefetch; i++) {
+        try {
+          await cache.getSingleFile(pages[i]);
+        } catch (_) {
+          // ignore prefetch errors
+        }
+      }
+
+      // Prefetch the first few pages of the next chapter asynchronously.
+      if (widget.nextChapter != null) {
+        SourceRegistry.instance.active
+            .getChapterImages(
+              item: widget.item,
+              chapterId: widget.nextChapter!.id,
+              chapterNo: widget.nextChapter!.number,
+            )
+            .then((nextPages) async {
+          final nextCount = min(prefetchCount, nextPages.length);
+          for (var i = 0; i < nextCount; i++) {
+            try {
+              await cache.getSingleFile(nextPages[i]);
+            } catch (_) {}
+          }
+        }).catchError((_) {});
+      }
+
+      return pages;
+    });
     // Enter immersive mode for reading.
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
   }

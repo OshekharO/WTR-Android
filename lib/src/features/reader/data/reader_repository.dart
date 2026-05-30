@@ -1,8 +1,8 @@
 import 'package:dio/dio.dart';
 import 'dart:convert';
 
-import '../../../core/constants/api_constants.dart';
 import '../../../core/network/dio_client.dart';
+import '../../../extensions/novel/wtr_novel_source.dart';
 import 'models/chapter_request.dart';
 import 'models/reader_chapter_content.dart';
 
@@ -13,7 +13,7 @@ class ReaderRepository {
   Future<ReaderChapterContent> fetchChapterContent(ChapterRequest request) async {
     try {
       final res = await _client.postViaProxy(
-        targetUrl: '${ApiConstants.webBaseUrl}${ApiConstants.readerGet}',
+        targetUrl: '${WtrConstants.webBaseUrl}${WtrConstants.readerGet}',
         body: request.toJson(),
       );
       return _extractChapterContent(res.data);

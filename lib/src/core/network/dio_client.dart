@@ -2,7 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:logger/logger.dart';
 
-import '../constants/api_constants.dart';
+// ApiConstants removed — WTR-specific constants moved to the novel extension.
 import 'dns_service.dart';
 
 // ── Generic client (for non-WTR sources) ──────────────────────────────────────
@@ -15,7 +15,7 @@ class DioClient {
         dio = dio ??
             Dio(
               BaseOptions(
-                baseUrl: ApiConstants.webBaseUrl,
+                baseUrl: '',
                 connectTimeout: const Duration(seconds: 30),
                 receiveTimeout: const Duration(seconds: 45),
                 sendTimeout: const Duration(seconds: 30),
@@ -109,7 +109,9 @@ class WtrProxyClient {
   final Logger _log;
 
   static const _proxyBase = 'https://cors-bypasser-pro.vercel.app';
-  static const _wtrBase = ApiConstants.webBaseUrl;
+  // Keep the WTR base literal here to avoid an import cycle; the canonical
+  // WTR constants live in the novel extension.
+  static const _wtrBase = 'https://wtr-lab.com';
 
   Dio _buildProxyDio() => Dio(
         BaseOptions(

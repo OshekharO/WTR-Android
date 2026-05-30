@@ -12,6 +12,14 @@ import '../models/content_details.dart';
 import '../models/content_item.dart';
 import '../models/content_source.dart';
 
+/// WTR-related constants moved here so the novel extension owns its API paths.
+class WtrConstants {
+  static const String webBaseUrl = 'https://wtr-lab.com';
+  static const String serieRanking = '/api/serie/ranking';
+  static const String search = '/api/search';
+  static const String readerGet = '/api/reader/get';
+}
+
 /// WTR-Lab novel source — wraps the existing WTR API.
 /// All requests go through the CORS proxy via [WtrProxyClient].
 class WtrNovelSource implements ContentSource {
@@ -39,7 +47,7 @@ class WtrNovelSource implements ContentSource {
   SourceType get type => SourceType.novel;
 
   @override
-  String get baseUrl => 'https://wtr-lab.com';
+  String get baseUrl => WtrConstants.webBaseUrl;
 
   @override
   String? get iconAsset => null;
@@ -63,7 +71,7 @@ class WtrNovelSource implements ContentSource {
   }) async {
     try {
       final res = await _client.get(
-        '/api/serie/ranking',
+        WtrConstants.serieRanking,
         queryParameters: {'type': type, 'limit': limit},
       );
       return _parseItemList(res.data).take(limit).toList(growable: false);
@@ -81,7 +89,7 @@ class WtrNovelSource implements ContentSource {
     if (query.trim().isEmpty) return const [];
     try {
       final res = await _client.post(
-        path: '/api/search',
+        path: WtrConstants.search,
         body: {'text': query},
       );
       return _parseItemList(res.data);
@@ -147,7 +155,7 @@ class WtrNovelSource implements ContentSource {
   }) async {
     try {
       final res = await _client.post(
-        path: '/api/reader/get',
+        path: WtrConstants.readerGet,
         body: {
           'translate': 'web',
           'language': 'en',

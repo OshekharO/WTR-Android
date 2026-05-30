@@ -1,8 +1,8 @@
 import 'package:dio/dio.dart';
 
-import '../../../core/constants/api_constants.dart';
 import '../../../core/data/demo_books.dart';
 import '../../../core/network/dio_client.dart';
+import '../../../extensions/novel/wtr_novel_source.dart';
 import '../../books/data/models/book.dart';
 
 class HomeRepository {
@@ -12,7 +12,7 @@ class HomeRepository {
   Future<List<Book>> fetchHomeBooks({String type = 'weekly', int limit = 5}) async {
     try {
       final res = await _client.dio.get(
-        ApiConstants.serieRanking,
+        '${WtrConstants.webBaseUrl}${WtrConstants.serieRanking}',
         queryParameters: {'type': type, 'limit': limit},
       );
       final data = res.data;
